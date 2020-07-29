@@ -32,23 +32,23 @@ percent_fmt = wb.add_format({'num_format': '0.00%'})
 amt_fmt = wb.add_format({'num_format': '#,##0'})
 border_format = wb.add_format({'border': 1})
 note_fmt = wb.add_format(
-    {'bold': False, 'font_size': 16,'font_name': u'微软雅黑', 'font_color': 'red', 'bg_color': 'green', 'align': 'left', 'valign': 'vcenter'})
+    {'bold': False, 'font_size': 16, 'font_name': u'微软雅黑', 'font_color': 'red', 'bg_color': 'green', 'align': 'left',
+     'valign': 'vcenter'})
 date_fmt = wb.add_format({'bold': False, 'font_name': u'微软雅黑', 'num_format': 'yyyy-mm-dd'})
 
-date_fmt1 = wb.add_format(
-    {'bold': True, 'font_size': 15, 'font_name': u'微软雅黑', 'num_format': 'yyyy-mm-dd', 'bg_color': '#9FC3D1',
+header_fmt = wb.add_format(
+    {'bold': True, 'font_size': 14, 'font_name': u'微软雅黑', 'num_format': 'yyyy-mm-dd', 'bg_color': '#9FC3D1',
      'valign': 'vcenter', 'align': 'center'})
 highlight_fmt = wb.add_format({'bg_color': '#FFD7E2', 'num_format': '0.00%'})
 
 # 4.写入excel
 l_end = len(data_df.index) + 3
-data_df.to_excel(writer, sheet_name=u'测试页签', encoding='utf8', header=False, index=False, startcol=0, startrow=3)
+data_df.to_excel(writer, sheet_name=u'测试页签', encoding='utf_8_sig', header=False, index=False, startcol=0, startrow=3,
+                 float_format="%0.1f")
 worksheet1 = writer.sheets[u'测试页签']
 ## 写表格头部
 for col_num, value in enumerate(data_df.columns.values):
-    worksheet1.write(2, col_num, value, date_fmt1)
-
-
+    worksheet1.write(2, col_num, value, header_fmt)
 
 # 5.生效单元格格式
 # 增加个表格说明
