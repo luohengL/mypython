@@ -1,22 +1,23 @@
-import config
 import pymysql
+from datafactory import newdev_db_config as db_config
 
 
-class DataBaseFactory:
+class DataBaseFactory2:
 
     def __init__(self):
         print('数据库初始化。。。。。')
-        configs = config.configs.get('db')
+        configs = db_config
+        print(configs.hostname)
         # 连接database
         try:
             print("数据库建立连接。。。。。。")
             self.condb = pymysql.connect(
-                host=configs.get("hostname"),
-                port=configs.get("port"),
-                db=configs.get("database"),
-                user=configs.get("user"),
-                password=configs.get("password"),
-                charset='utf8')
+                host=configs.hostname,
+                port=configs.port,
+                db=configs.database,
+                user=configs.user,
+                password=configs.password,
+                charset=configs.charset)
         except Exception as abnormal:
             print("数据库连接错误，错误内容%s " % abnormal)
         self.cursor = self.condb.cursor()
@@ -34,11 +35,14 @@ class DataBaseFactory:
         else:  # 多行情况下 使用fetchall
             return list(self.cursor.fetchall())
 
+
     def get_column_name(self):
         return [i[0] for i in self.cursor.description]
 
+
     def commit(self):
         self.condb.commit()
+
 
     def __del__(self):
         self.cursor.close()
