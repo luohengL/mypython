@@ -14,3 +14,5 @@ bar.add_yaxis("商家B", [15, 23, 16, 14, 35, 120],stack="stack1")
 bar.set_series_opts(label_opts=opts.LabelOpts(is_show=False,position="right"))
 bar.set_global_opts(title_opts=opts.TitleOpts(title="Bar-堆叠数据（部分）"),datazoom_opts=opts.DataZoomOpts())
 bar.render("pyechart_demo.html")
+
+
