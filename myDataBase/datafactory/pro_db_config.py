@@ -1,4 +1,4 @@
-private_key = '/Users/fuse/Documents/doc/key/id_rsa_zsc'
+private_key = '/Users/luoheng/.ssh/id_rsa_zsc'
 ssh_hostname = '47.74.177.113'
 ssh_port = 10110
 ssh_username = 'root'

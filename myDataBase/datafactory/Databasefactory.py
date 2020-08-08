@@ -1,7 +1,7 @@
 import pymysql
 import paramiko
 from sshtunnel import SSHTunnelForwarder
-from datafactory import newdev_db_config as db_config
+from datafactory import pro_db_config as db_config
 
 
 class DataBaseFactory:
