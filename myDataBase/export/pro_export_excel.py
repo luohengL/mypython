@@ -1,8 +1,9 @@
 from datafactory import Databasefactory as dbf
 import numpy as np
 import pandas as pd
+from datafactory import pro_db_config as db_config
 
-db = dbf.DataBaseFactory()
+db = dbf.DataBaseFactory(db_config)
 
 table_name = 'rm_policy'
 data = db.querysql(

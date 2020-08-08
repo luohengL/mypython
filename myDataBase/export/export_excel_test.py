@@ -1,10 +1,11 @@
-from datafactory import Databasefactory2 as dbf
+from datafactory import Databasefactory as dbf
 import numpy as np
 import pandas as pd
-
+from datafactory import newdev_db_config as db_config
 from datetime import datetime, timedelta
 
-db = dbf.DataBaseFactory2()
+
+db = dbf.DataBaseFactory(db_config)
 
 table_name = 'testExcel'
 data = db.querysql(
@@ -22,6 +23,7 @@ data_df.columns = column
 print(type(data_df))
 print(data_df)
 
+## 获取昨天
 t = datetime.now().date() - timedelta(days=1)
 writer = pd.ExcelWriter(table_name + (u'_%d%02d%02d.xlsx' % (t.year, t.month, t.day)))
 wb = writer.book

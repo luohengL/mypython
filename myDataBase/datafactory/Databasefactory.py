@@ -1,15 +1,40 @@
 import pymysql
 import paramiko
 from sshtunnel import SSHTunnelForwarder
-from datafactory import pro_db_config as db_config
+
 
 
 class DataBaseFactory:
 
-    def __init__(self):
+    def __init__(self, db_config):
         print('数据库初始化。。。。。')
         configs = db_config
-        print(configs.ssh_hostname)
+        print(configs.hostname)
+        if (hasattr(configs, 'use_ssh') and configs.use_ssh == 'yes'):
+            self.condb = self.connect_db_by_ssh(configs)
+        else:
+            self.condb = self.connect_db(configs)
+        self.cursor = self.condb.cursor()
+
+    def connect_db(self, db_config):
+        print("数据库建立连接。。。。。。")
+        configs = db_config
+        # 连接database
+        try:
+            self.condb = pymysql.connect(
+                host=configs.hostname,
+                port=configs.port,
+                db=configs.database,
+                user=configs.user,
+                password=configs.password,
+                charset=configs.charset)
+        except Exception as abnormal:
+            print("数据库连接错误，错误内容%s " % abnormal)
+        return self.condb
+
+    def connect_db_by_ssh(self, db_config):
+        print("连接 ssh。。。。。。")
+        configs = db_config
         private_key = paramiko.RSAKey.from_private_key_file(configs.private_key)
         # 连接database
         server = SSHTunnelForwarder(
@@ -22,7 +47,7 @@ class DataBaseFactory:
             # 设置用户
             ssh_username=configs.ssh_username,
             # 设置数据库服务地址及端口
-            remote_bind_address=(configs.local_hostname, configs.local_port))
+            remote_bind_address=(configs.hostname, configs.port))
         server.start()
         try:
             print("数据库建立连接。。。。。。")
@@ -35,7 +60,8 @@ class DataBaseFactory:
             print("success")
         except Exception as abnormal:
             print("数据库连接错误，错误内容%s " % abnormal)
-        self.cursor = self.condb.cursor()
+
+        return self.condb
 
     def querysql(self, sql):
         try:
@@ -50,14 +76,11 @@ class DataBaseFactory:
         else:  # 多行情况下 使用fetchall
             return list(self.cursor.fetchall())
 
-
     def get_column_name(self):
         return [i[0] for i in self.cursor.description]
 
-
     def commit(self):
         self.condb.commit()
-
 
     def __del__(self):
         self.cursor.close()
