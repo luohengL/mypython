@@ -8,6 +8,11 @@ data = {
 }
 frame = pd.DataFrame(data)
 print(frame)
+frame= frame.append([{'state':'add','year':212}], ignore_index=True)
+print(frame)
+
+
+print("############frame2#################")
 ### DataFrame的行索引是index，列索引是columns，我们可以在创建DataFrame时指定索引的值：
 frame2 = pd.DataFrame(data,index=['one','two','three','four','five'],columns=['year','state','pop','debt'])
 print(frame2)

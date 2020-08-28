@@ -76,6 +76,82 @@ AND DATE_ADD(IFNULL(epc.ops_oder_time,epc.create_time),INTERVAL 7 hour)<='2020-0
     column = db.get_column_name()
     data_df = pd.DataFrame(np.array(data))
     data_df.columns = column
+    data_group = data_df.groupby(["insurance_company","car_type"])
+    totalPrice={}
+    for name, each_sheet in data_group:
+        thsi_df= pd.DataFrame(each_sheet)
+
+        tsi_2019=thsi_df['tsi_2019'].sum()
+        tsi_2020=thsi_df['tsi_2020'].sum()
+        tsi_total=thsi_df['tsi_total'].sum()
+        policy_count_2019=thsi_df['policy_count_2019'].sum()
+        policy_count_2020=thsi_df['policy_count_2020'].sum()
+        policy_count_total=thsi_df['policy_count_total'].sum()
+
+        totalPrice[str(name[0])+str(name[1])+'tsi_2019']=tsi_2019;
+        totalPrice[str(name[0])+str(name[1])+'tsi_2020']=tsi_2020;
+        totalPrice[str(name[0])+str(name[1])+'tsi_total']=tsi_total;
+        totalPrice[str(name[0])+str(name[1])+'policy_count_2019']=policy_count_2019;
+        totalPrice[str(name[0])+str(name[1])+'policy_count_2020']=policy_count_2020;
+        totalPrice[str(name[0])+str(name[1])+'policy_count_total']=policy_count_total;
+        data_df= data_df.append([{'insurance_company':str(name[0]),'car_type':str(name[1])+'summary','tsi_2019': tsi_2019,'tsi_2020': tsi_2020,'tsi_total': tsi_total,'policy_count_2019': policy_count_2019,'policy_count_2020': policy_count_2020,'policy_count_total': policy_count_total}], ignore_index=True)
+    print(totalPrice)
+
+    for index, row in data_df.iterrows():
+        car_type= row['car_type']
+        if(car_type=='car' or car_type=='moto'):
+            tsi_2019 = totalPrice[row['insurance_company'] + car_type + "tsi_2019"]
+            if(tsi_2019!=0):
+                if(row['tsi_2019'] is None):
+                    row['tsi_ratio_2019']= 0
+                else:
+                    row['tsi_ratio_2019'] = round(row['tsi_2019'] / tsi_2019,4)
+            tsi_2020 = totalPrice[row['insurance_company'] + car_type + "tsi_2020"]
+            if (tsi_2020 != 0):
+                if (row['tsi_2020'] is None):
+                    row['tsi_ratio_2020'] = 0
+                else:
+                    row['tsi_ratio_2020'] = round(row['tsi_2020'] / tsi_2020,4)
+            policy_count_2019 = totalPrice[row['insurance_company'] + car_type + "policy_count_2019"]
+            if (policy_count_2019 != 0):
+                if (row['policy_count_2019'] is None):
+                    row['policy_count_ratio_2019'] = 0
+                else:
+                    row['policy_count_ratio_2019'] = round(row['policy_count_2019'] / policy_count_2019,4)
+            policy_count_2020 = totalPrice[row['insurance_company'] + car_type + "policy_count_2020"]
+            if (policy_count_2020 != 0):
+                if (row['policy_count_2020'] is None):
+                    row['policy_count_ratio_2020'] = 0
+                else:
+                    row['policy_count_ratio_2020'] = round(row['policy_count_2020'] / policy_count_2020,4)
+        else:
+            if(row['tsi_2019']==0):
+                row['tsi_ratio_2019']=0
+            else:
+                row['tsi_ratio_2019'] = 1
+
+            if (row['tsi_2020'] == 0):
+                row['tsi_ratio_2020'] = 0
+            else:
+                row['tsi_ratio_2020'] = 1
+
+            if (row['policy_count_2019'] == 0):
+                row['policy_count_ratio_2019'] = 0
+            else:
+                row['policy_count_ratio_2019'] = 1
+
+            if (row['policy_count_2020'] == 0):
+                row['policy_count_ratio_2020']=0
+            else:
+                row['policy_count_ratio_2020']=1
+
+
+
+
+
+
+
+    data_df= data_df.sort_values(['insurance_company', 'car_type','aging'], ascending=[True, True,True])
     return data_df
 
 def write_to_excel(data_df):
@@ -91,6 +167,10 @@ def write_to_excel(data_df):
         {'bold': True, 'font_size': 12, 'font_name': u'微软雅黑', 'num_format': 'yyyy-mm-dd',
          'valign': 'vcenter', 'align': 'center'})
 
+    ## data_df['tsi_ratio_2019']= data_df['tsi_ratio_2019'].apply(lambda x: format(x, '.2%'))
+    data_df['tsi_ratio_2020']= data_df['tsi_ratio_2020'].apply(lambda x: format(float(x), '.2%'))
+    data_df['policy_count_ratio_2019']= data_df['policy_count_ratio_2019'].apply(lambda x: format(x, '.2%'))
+    data_df['policy_count_ratio_2020']= data_df['policy_count_ratio_2020'].apply(lambda x: format(x, '.2%'))
     data_df.to_excel(writer, sheet_name=u'Summary', encoding='utf8', header=True, index=False, startcol=0, startrow=0)
 
     worksheet1 = writer.sheets[u'Summary']
