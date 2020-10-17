@@ -22,12 +22,16 @@ server = SSHTunnelForwarder(
 server.start()
 print("server started....")
 
-client = pymongo.MongoClient(host=server.local_bind_host,port= server.local_bind_port, username='cafl', password='cArfinAncia1')
-print(client)
+client = pymongo.MongoClient(host=server.local_bind_host,port= server.local_bind_port)
 db = client.fuse
+db.authenticate(name='cafl', password='cArfinAncia1')
+print(client)
 
-data = db.basicData.find({"fusePolicyCode":"FPG-20201010-035300029943684"})
-data_list = [u for u in data]
-print(data_list)
-
+data = db.basicData.find_one()
+print(data)
+client.close()
+def shutdown():
+    server.stop()
+atexit.register(shutdown)
 server.close()
+print("server close....")

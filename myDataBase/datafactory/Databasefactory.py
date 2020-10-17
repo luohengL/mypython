@@ -37,7 +37,7 @@ class DataBaseFactory:
         configs = db_config
         private_key = paramiko.RSAKey.from_private_key_file(configs.private_key)
         # 连接database
-        server = SSHTunnelForwarder(
+        self.server = SSHTunnelForwarder(
             # 指定ssh登录的跳转机的address
             ssh_address_or_host=(configs.ssh_hostname, configs.ssh_port),
             # 设置密钥
@@ -48,15 +48,15 @@ class DataBaseFactory:
             ssh_username=configs.ssh_username,
             # 设置数据库服务地址及端口
             remote_bind_address=(configs.hostname, configs.port))
-        server.start()
+        self.server.start()
         try:
             print("数据库建立连接。。。。。。")
             self.condb = pymysql.connect(database=configs.database,
                                          user=configs.user,
                                          password=configs.password,
-                                         host=server.local_bind_host,
+                                         host=self.server.local_bind_host,
                                          # 因为上面没有设置 local_bind_address,所以这里必须是127.0.0.1,如果设置了，取设置的值就行了。
-                                         port=server.local_bind_port)  # 这里端口也一样，上面的server可以设置，没设置取这个就行了
+                                         port=self.server.local_bind_port)  # 这里端口也一样，上面的server可以设置，没设置取这个就行了
             print("success")
         except Exception as abnormal:
             print("数据库连接错误，错误内容%s " % abnormal)
@@ -85,3 +85,4 @@ class DataBaseFactory:
     def __del__(self):
         self.cursor.close()
         self.condb.close()
+        self.server.close()
