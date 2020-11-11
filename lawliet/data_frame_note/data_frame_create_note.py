@@ -6,7 +6,7 @@
 # @Description: dataFrame 创建
 
 import pandas as pd
-
+import numpy as np
 
 
 """
@@ -41,3 +41,15 @@ pop = {'Nevada':{2001:2.4,2002:2.9},'Ohio':{2000:1.5,2001:1.7,2002:3.6}}
 frame3 = pd.DataFrame(pop)
 print(frame3)
 
+
+people=pd.DataFrame(np.random.randn(5,5),
+                 columns=['a','b','c','d','e'],
+                 index=['Joe','Steve','Wes','Jim','Travis'])
+print(people)
+
+frame = pd.DataFrame(np.arange(8).reshape((2,4)),index=['three','one'],columns=['d','a','b','c'])
+print(frame)
+
+print(np.arange(8))
+print(np.arange(8).reshape((2,4)))
+print(np.arange(8).reshape((2,4)).reshape((4,2)))
