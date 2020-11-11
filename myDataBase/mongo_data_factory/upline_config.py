@@ -29,14 +29,17 @@ db = client.fuse
 db.authenticate(name='cafl', password='cArfinAncia1')
 print(client)
 
-data = db.policy.find({"$or":[{"cancelTime":{ "$exists": "true" }},{"forceCancelTime":{ "$exists": "true" }}], "fusePolicyCode":{
-        "$in":["MAG-20200102-050600001234483",
-"ADIRA-20200102-064300038435007",
-"ADIRA-20200103-022500000667681"]}},{"_id":0,"fusePolicyCode":1,"cancelTime":1,"forceCancelTime":1})
+filter = {}
+keyword = "Up-Line Rate: Before"
+condition = {}
+condition['$regex'] = keyword
+filter["details"] = condition
+
+data = db.operateLog.find(filter)
 
 data_list = [u for u in data]
 print(data_list)
-frame = pd.DataFrame(data_list, columns=['fusePolicyCode', 'cancelTime','forceCancelTime'])
+frame = pd.DataFrame(data_list, columns=['serchId', 'operateTime','operatorAcc','details'])
 print(frame)
 
 
@@ -44,11 +47,11 @@ print(frame)
 
 
 t = datetime.now().date() - timedelta(days=1)
-writer = pd.ExcelWriter("cancelTime2" + (u'_%d%02d%02d.xlsx' % (t.year, t.month, t.day)))
+writer = pd.ExcelWriter("Up-Line Rate" + (u'_%d%02d%02d.xlsx' % (t.year, t.month, t.day)))
 
 wb = writer.book
 
-frame.to_excel(writer, sheet_name=u'rejectEditLog', encoding='utf8', header=True, index=False, startcol=0, startrow=0)
+frame.to_excel(writer, sheet_name=u'Up-Line Rate', encoding='utf8', header=True, index=False, startcol=0, startrow=0)
 writer.save()
 
 

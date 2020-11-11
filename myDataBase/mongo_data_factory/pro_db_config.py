@@ -1,0 +1,11 @@
+use_ssh = 'yes'
+private_key = '/Users/luoheng/.ssh/id_rsa_zsc'
+ssh_host = '47.74.249.151'
+ssh_port = 22018
+ssh_username = 'user001'
+host = 'dds-k1a47be55c9d48141.mongodb.ap-southeast-5.rds.aliyuncs.com'
+port = 3717
+user = 'cafl'
+password = 'cArfinAncia1'
+database = 'fuse'
+charset = 'utf8'
