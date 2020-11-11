@@ -59,7 +59,7 @@ class MongoDataBaseFactory:
         self.server.start()
         try:
             print("数据库建立连接。。。。。。")
-            client = pymongo.MongoClient(host=configs.host, port=configs.port)
+            client = pymongo.MongoClient(host=self.server.local_bind_host,port= self.server.local_bind_port)
             ## connect=True，说明你已经连接成功了
             print(client)
             self.condb = client[configs.database]
