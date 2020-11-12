@@ -1,5 +1,5 @@
 use_ssh = 'yes'
-private_key = '/Users/luoheng/.ssh/id_rsa_zsc'
+private_key = '/Users/luoheng/Documents/fuse/key/id_rsa_db'
 ssh_host = '47.74.249.151'
 ssh_port = 22018
 ssh_username = 'user001'

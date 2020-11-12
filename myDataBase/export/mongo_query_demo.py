@@ -7,12 +7,17 @@
 
 from mongo_data_factory import MongoDataBaseFactory as dbf
 from mongo_data_factory import pro_db_config as db_config
+import pandas as pd
 
 dbf = dbf.MongoDataBaseFactory(db_config)
-db = dbf.getConn()
+db = dbf.getdb()
 data = db.policy.find({"orderTime" :{"$gte": "1595543167000","$lte": "1598221567000"}},{"_id":0,"fusePolicyCode":1,"mobileName":1,"productCode":1,"productName":1,"policyAmount":1})
 
 data_list = [u for u in data]
-print(data_list)
+frame = pd.DataFrame(data_list)
+print(frame)
 
 print("finish.....")
+
+## 关闭连接
+dbf.shoutdown()
