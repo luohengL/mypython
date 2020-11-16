@@ -214,24 +214,41 @@ def get_policy_info():
     return data_df
 
 
-def get_cancel_time():
+def get_reject_time():
+    ## offline
     db = dbf.DataBaseFactory(db_config)
     offline_reject_info = db.querysql(offline_reject)
-    print(type(offline_reject_info))
-    print(offline_reject_info)
     column = db.get_column_name()
+    ## backdoor
     backdoor_reject_info = db.querysql(backdoor_reject)
-    print(backdoor_reject_info)
-    all_reject_info=backdoor_reject_info+offline_reject_info
-    print(all_reject_info)
+    ## other
+    mdbF = mdbf.MongoDataBaseFactory(mdb_config)
+    db = mdbF.getdb()
+    data = db.operateLog.find({"operateType":14,"details":{"$regex":"Action: no process"}},{"_id":0,"serchId":1,"operateTime":1});
+    other_reject_info = [(u['serchId'],datetime.fromtimestamp(int(u['operateTime'])/1000+25200)) for u in data]
+    all_reject_info = backdoor_reject_info + offline_reject_info + other_reject_info
 
-    db = mdbf.MongoDataBaseFactory(mdb_config).getdb()
-    data = db.operateLog.find({"operateType":14,"details":{"$regex":"Action: no process"}});
-    data_list = [u for u in data]
-    print(data_list)
-    print("get cancel time")
+    data_df = pd.DataFrame(np.array(all_reject_info))
+    data_df.columns = column
+    return data_df
 
 
-policy_info = get_policy_info()
+def get_cancel_time():
+    print("query cancel time")
+    ## offline
+    mdbF = mdbf.MongoDataBaseFactory(mdb_config)
+    db = mdbF.getdb()
+    data = db.policy.find({"$or":[{"cancelTime":{ "$exists": "true" }},{"forceCancelTime":{ "$exists": "true" }}]},
+                              {"_id": 0, "fusePolicyCode": 1, "cancelTime": 1,"forceCancelTime":1});
+    offline_cancel_info = [(u['fusePolicyCode'],datetime.fromtimestamp(int(u['cancelTime'])/1000+25200) if 'cancelTime' in u else None,datetime.fromtimestamp(int(u['forceCancelTime'])/1000+25200) if 'forceCancelTime' in u else None ) for u in data]
+    # offline_cancel_info = [(u['serchId'], u['cancelTime'] if None else datetime.fromtimestamp(int(u['cancelTime']) / 1000 + 25200),u['forceCancelTime'] if None else  datetime.fromtimestamp(int(u['forceCancelTime']) / 1000 + 25200)) for u in data]
+    print(offline_cancel_info)
+
+
+#policy_info = get_policy_info()
+#print(policy_info)
+#reject_time_info = get_reject_time()
+#print(reject_time_info)
+
 cancel_time_info = get_cancel_time()
-print(policy_info)
+print(cancel_time_info)
