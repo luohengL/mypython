@@ -146,11 +146,6 @@ AND DATE_ADD(IFNULL(epc.ops_oder_time,epc.create_time),INTERVAL 7 hour)<='2020-0
                 row['policy_count_ratio_2020']=1
 
 
-
-
-
-
-
     data_df= data_df.sort_values(['insurance_company', 'car_type','aging'], ascending=[True, True,True])
     return data_df
 

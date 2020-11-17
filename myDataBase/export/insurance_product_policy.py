@@ -3,7 +3,7 @@
 # @Email   : luohenghlx@163.com
 # @File    : insurance_product_policy.py
 # @Software: PyCharm
-# @Description:
+# @Description: 保险公司产品保单统计
 
 import numpy as np
 import pandas as pd
@@ -13,11 +13,17 @@ from datetime import datetime, timedelta
 from mongo_data_factory import MongoDataBaseFactory as mdbf
 from mongo_data_factory import pro_db_config as mdb_config
 
+## 获取数据库连接
+db = dbf.DataBaseFactory(db_config)
+mdbF = mdbf.MongoDataBaseFactory(mdb_config)
+mgdb = mdbF.getdb()
+
+##sql
 
 policy_sql = """
 -- auto
 SELECT * from (
-SELECT pp.fuse_policy_code,att.agent_type_name,DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(pp.create_time,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Offline' as 'policy_source',ic.company_name 'insurance_company_name',(CASE pc.category_type WHEN 1 THEN 'General' WHEN 2 THEN 'Travel' WHEN 3 THEN 'Car' WHEN 4 THEN 'Moto' WHEN 6 THEN 'Life' WHEN 7 THEN 'PA' WHEN 8 THEN 'Property' WHEN 9 THEN 'Health' WHEN 11 THEN 'Marine Cargo' WHEN 13 THEN 'SME' WHEN 14 THEN 'MOVEABLE ALL RISK' WHEN 12 THEN 'ROP' WHEN 15 THEN 'VIP' ELSE '' END) as 'policy type'  ,(pp.policy_amount-pp.admin_fee-pp.service_fee)  'gwp'
+SELECT pp.fuse_policy_code,att.agent_type_name,DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(pp.create_time,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Offline' as 'policy_source',ic.company_name 'insurance_company_name',(CASE pc.category_type WHEN 1 THEN 'General' WHEN 2 THEN 'Travel' WHEN 3 THEN 'Car' WHEN 4 THEN 'Moto' WHEN 6 THEN 'Life' WHEN 7 THEN 'PA' WHEN 8 THEN 'Property' WHEN 9 THEN 'Health' WHEN 11 THEN 'Marine Cargo' WHEN 13 THEN 'SME' WHEN 14 THEN 'MOVEABLE ALL RISK' WHEN 12 THEN 'ROP' WHEN 15 THEN 'VIP' ELSE '' END) as 'policy_type'  ,(pp.policy_amount-pp.admin_fee-pp.service_fee)  'gwp'
 from policy_auto pp
 LEFT JOIN policy p on p.main_policy_code=pp.main_policy_code
 LEFT JOIN product pd on pd.product_code=pp.product_code
@@ -29,7 +35,7 @@ where  aa.test_account in (0,4) and policy_status not in (-1,101) and (p.pay_tim
 union
 
 -- bacdkoor
-SELECT pp.fuse_policy_code,att.agent_type_name,DATE_ADD(pp.order_date,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(pp.order_date,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Backdoor' as 'policy_source',pp.insurance_company_name 'insurance_company_name',pp.policy_type as 'policy type'  ,IF(pp.is_co_as=1,(ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 )) * ( ifnull( t.`company_percentage`, 0 ) / 100 ),ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 ))  'gwp'
+SELECT pp.fuse_policy_code,att.agent_type_name,DATE_ADD(pp.order_date,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(pp.order_date,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Backdoor' as 'policy_source',pp.insurance_company_name 'insurance_company_name',pp.policy_type as 'policy_type'  ,IF(pp.is_co_as=1,(ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 )) * ( ifnull( t.`company_percentage`, 0 ) / 100 ),ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 ))  'gwp'
 from policy_back_door pp
 LEFT JOIN account_agent aa on pp.agent_mobile=aa.mobile
 LEFT JOIN agent_type att on att.agent_type_code=aa.agent_type_code
@@ -41,7 +47,7 @@ where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and  DATE_A
 
 union
 -- other
-SELECT pp.fuse_policy_code,att.agent_type_name,DATE_ADD(ci.create_time,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(ci.create_time,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Others' as 'policy_source',pp.insurance_company_order 'insurance_company_name',pp.product_name as 'policy type'  ,IFNULL(pp.pay_amount,0)-IFNULL(pp.admin_fee,0)   'gwp'
+SELECT pp.fuse_policy_code,att.agent_type_name,DATE_ADD(ci.create_time,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(ci.create_time,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Others' as 'policy_source',pp.insurance_company_order 'insurance_company_name',pp.product_name as 'policy_type'  ,IFNULL(pp.pay_amount,0)-IFNULL(pp.admin_fee,0)   'gwp'
 from external_policy_common pp
 LEFT JOIN  (SELECT fuse_policy_code,send_time 'create_time' from  covernote_information where type=2 GROUP BY fuse_policy_code ) ci on ci.fuse_policy_code=pp.fuse_policy_code 
 LEFT JOIN account_agent aa on pp.create_account=aa.mobile
@@ -193,20 +199,26 @@ where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and  DATE_A
 "Nadia Yunita C");
 """
 
+backdoor_cancel_sql = """
+    SELECT pp.fuse_policy_code, DATE_FORMAT(DATE_ADD(pbdr1.cancel_date,INTERVAL 7 HOUR),'%Y-%m') 'cancel_time', DATE_FORMAT(DATE_ADD(pp.force_cancel_time,INTERVAL 7 HOUR),'%Y-%m') 'force_cancel_time' from policy_back_door pp LEFT JOIN  policy_back_door_review pbdr1 ON ( pp.fuse_policy_code = pbdr1.fuse_policy_code AND  (pbdr1.review_opinion = 'Cancel' or (pbdr1.type = 2 AND pbdr1.review_opinion = 'Approved' AND pbdr1.cancel_policy = 1)))
+where pbdr1.cancel_date is not null or  pp.force_cancel_time is not null ;
+"""
 
 offline_reject ="""
-SELECT fuse_code fuse_policy_code,app_time reject_time from policy_approve_record where approve_type in (105,106);
+SELECT fuse_code fuse_policy_code,DATE_FORMAT(DATE_ADD(app_time,INTERVAL 7 HOUR),'%Y-%m') reject_time from policy_approve_record where approve_type in (105,106);
 """
 backdoor_reject="""
-SELECT fuse_policy_code,operate_time reject_time from policy_back_door_review where confirm_opinion='Reject';
+SELECT fuse_policy_code,DATE_FORMAT(DATE_ADD(operate_time,INTERVAL 7 HOUR),'%Y-%m') reject_time from policy_back_door_review where confirm_opinion='Reject';
 """
-other_reject = """
-db.operateLog.find({"operateType":14,"details":{$regex:/Action: no process/}});
-"""
+
+## mongo query
+offline_cancel_data = mgdb.policy.find({"$or":[{"cancelTime":{ "$exists": "true" }},{"forceCancelTime":{ "$exists": "true" }}]},
+                              {"_id": 0, "fusePolicyCode": 1, "cancelTime": 1,"forceCancelTime":1});
+
+other_reject_info_data = mgdb.operateLog.find({"operateType":14,"details":{"$regex":"Action: no process"}},{"_id":0,"serchId":1,"operateTime":1});
 
 def get_policy_info():
     print("query data......")
-    db = dbf.DataBaseFactory(db_config)
     data = db.querysql(policy_sql)
     column = db.get_column_name()
     data_df = pd.DataFrame(np.array(data))
@@ -216,16 +228,12 @@ def get_policy_info():
 
 def get_reject_time():
     ## offline
-    db = dbf.DataBaseFactory(db_config)
     offline_reject_info = db.querysql(offline_reject)
     column = db.get_column_name()
     ## backdoor
     backdoor_reject_info = db.querysql(backdoor_reject)
     ## other
-    mdbF = mdbf.MongoDataBaseFactory(mdb_config)
-    db = mdbF.getdb()
-    data = db.operateLog.find({"operateType":14,"details":{"$regex":"Action: no process"}},{"_id":0,"serchId":1,"operateTime":1});
-    other_reject_info = [(u['serchId'],datetime.fromtimestamp(int(u['operateTime'])/1000+25200)) for u in data]
+    other_reject_info = [(u['serchId'],datetime.strftime(datetime.fromtimestamp(int(u['operateTime'])/1000+25200),'%Y-%m')) for u in other_reject_info_data]
     all_reject_info = backdoor_reject_info + offline_reject_info + other_reject_info
 
     data_df = pd.DataFrame(np.array(all_reject_info))
@@ -236,19 +244,123 @@ def get_reject_time():
 def get_cancel_time():
     print("query cancel time")
     ## offline
-    mdbF = mdbf.MongoDataBaseFactory(mdb_config)
-    db = mdbF.getdb()
-    data = db.policy.find({"$or":[{"cancelTime":{ "$exists": "true" }},{"forceCancelTime":{ "$exists": "true" }}]},
-                              {"_id": 0, "fusePolicyCode": 1, "cancelTime": 1,"forceCancelTime":1});
-    offline_cancel_info = [(u['fusePolicyCode'],datetime.fromtimestamp(int(u['cancelTime'])/1000+25200) if 'cancelTime' in u else None,datetime.fromtimestamp(int(u['forceCancelTime'])/1000+25200) if 'forceCancelTime' in u else None ) for u in data]
-    # offline_cancel_info = [(u['serchId'], u['cancelTime'] if None else datetime.fromtimestamp(int(u['cancelTime']) / 1000 + 25200),u['forceCancelTime'] if None else  datetime.fromtimestamp(int(u['forceCancelTime']) / 1000 + 25200)) for u in data]
-    print(offline_cancel_info)
+
+    offline_cancel_info = [(u['fusePolicyCode'],datetime.strftime(datetime.fromtimestamp(int(u['cancelTime'])/1000+25200),'%Y-%m') if 'cancelTime' in u else None,datetime.strftime(datetime.fromtimestamp(int(u['forceCancelTime'])/1000+25200),'%Y-%m') if 'forceCancelTime' in u else None ) for u in offline_cancel_data]
+
+    ## backdoor
+    backdoor_cancel_info = db.querysql(backdoor_cancel_sql)
+
+    column = db.get_column_name()
+
+    all_cancel_info = offline_cancel_info+backdoor_cancel_info
+    data_df = pd.DataFrame(np.array(all_cancel_info))
+    data_df.columns = column
+    return data_df
 
 
-#policy_info = get_policy_info()
-#print(policy_info)
-#reject_time_info = get_reject_time()
-#print(reject_time_info)
+def data_generate():
+    basic_info = get_policy_info()
+    reject_time_info = get_reject_time()
+    cancel_time_info = get_cancel_time()
 
-cancel_time_info = get_cancel_time()
-print(cancel_time_info)
+
+    temp1 = pd.merge(basic_info,reject_time_info,on="fuse_policy_code",how='left')
+    policy_info= pd.merge(temp1,cancel_time_info,on="fuse_policy_code",how='left')
+
+    # time_filter = lambda x: x['order_time_month']=='2020-10'
+
+    time_filter = lambda x: x['order_time_month']!=x['reject_time'] and x['order_time_month']!=x['cancel_time'] and x['order_time_month']!=x['force_cancel_time']
+
+    policy_info=policy_info[policy_info.apply(time_filter, axis=1)]
+
+
+    ## 分组聚合
+
+
+    insurance_group = policy_info.groupby(["insurance_company_name"])
+
+    policy_count=[]
+    sub_total = {"insurance_company_name":" GRAND TOTAL", "policy_source":'total',"policy_type" :'total'}
+    sub_total["total_count"] = policy_info.__len__()
+    sub_total["total_gwp"] = policy_info['gwp'].sum()
+    for insurance_name, each_sheet in insurance_group:
+        this_insurance = pd.DataFrame(each_sheet)
+        policy_group = this_insurance.groupby(["policy_source", "policy_type"])
+        total_info = {"insurance_company_name": insurance_name, "policy_source": 'policy_source',
+                       "policy_type": "policy_type"}
+        policy_count.append(total_info)
+        for name, policy_sheet in policy_group:
+            this_type = pd.DataFrame(policy_sheet)
+            each_month = this_type.groupby(["order_time_month"])
+            this_policy = {"insurance_company_name":insurance_name, "policy_source":name[0],"policy_type" :name[1]}
+            for month_name, each_month_sheet in each_month:
+                this_month = pd.DataFrame(each_month_sheet)
+                this_policy[month_name+"_count"]=this_month.__len__()
+                this_policy[month_name+"_gwp"]=this_month['gwp'].sum()
+                total_info[month_name + "_count"] = (total_info[month_name + "_count"] if (month_name + "_count") in total_info else 0) +this_month.__len__()
+                total_info[month_name + "_gwp"] = (total_info[month_name + "_gwp"] if (month_name + "_gwp") in total_info else 0) +this_month['gwp'].sum()
+                sub_total[month_name + "_count"] = (sub_total[month_name + "_count"] if (month_name + "_count") in sub_total else 0) +this_month.__len__()
+                sub_total[month_name + "_gwp"] = (sub_total[month_name + "_gwp"] if (month_name + "_gwp") in sub_total else 0) +this_month['gwp'].sum()
+
+            this_policy["total_count"] = this_type.__len__()
+            this_policy["total_gwp"] = this_type['gwp'].sum()
+            total_info["total_count"] = this_insurance.__len__()
+            total_info["total_gwp"] = this_insurance['gwp'].sum()
+            policy_count.append(this_policy)
+
+    policy_count.append(sub_total)
+
+    policy_info = pd.DataFrame(policy_count)
+
+    order = ['insurance_company_name', 'policy_source', 'policy_type', '2020-08_count', '2020-08_gwp','2020-09_count', '2020-09_gwp','2020-10_count', '2020-10_gwp', 'total_count', 'total_gwp']
+    policy_info = policy_info[order]
+
+    policy_info = policy_info.fillna(0)
+    print(policy_info)
+    return policy_info
+
+
+def write_to_excel(policy_info):
+    ## 导出到excel
+    print("writing......")
+    t = datetime.now().date() - timedelta(days=1)
+    writer = pd.ExcelWriter("insurance_product_policy" + (u'_%d%02d%02d.xlsx' % (t.year, t.month, t.day)))
+
+    wb = writer.book
+
+    # 3.设置格式
+    header_fmt = wb.add_format(
+        {'bold': True, 'font_size': 13,'font_color': 'white', 'font_name': u'微软雅黑','valign': 'vcenter', 'bg_color': '#808080', 'align': 'center'})
+    total_line_fmt = wb.add_format({ 'bg_color': '#A9A9A9'})
+    merge_fmt = wb.add_format({ 'bold': True, 'font_size': 12,'bg_color': '#A9A9A9', 'align': 'center'})
+
+    policy_info.to_excel(writer, sheet_name=u'insurance_product_policy', encoding='utf8', header=True, index=False, startcol=0, startrow=0)
+    worksheet1 = writer.sheets[u'insurance_product_policy']
+    worksheet1.set_column('A:K', 20)
+    for col_num, value in enumerate(policy_info.columns.values):
+        worksheet1.write(0, col_num, value, header_fmt)
+
+    for index, row in policy_info.iterrows():
+        if(row['policy_source']=="policy_source"):
+            for col_num, value in enumerate(row):
+                worksheet1.write(index+1, col_num, value if not pd.isna(value) else '', total_line_fmt)
+            worksheet1.merge_range(first_row=index + 1, last_row=index + 1, first_col=1, last_col=2,
+                                   data=row['insurance_company_name'], cell_format=merge_fmt)
+        elif(row['policy_source']=="total"):
+            for col_num, value in enumerate(row):
+                worksheet1.write(index + 1, col_num, value if not pd.isna(value) else '', header_fmt)
+
+    # worksheet1.merge_range(first_row=1,last_row=1,first_col=1,last_col=2,data="merge",cell_format=merge_fmt)
+    writer.save()
+
+    print("write done !!!")
+
+
+
+
+write_to_excel(data_generate())
+## 关闭连接
+mdbF.shoutdown()
+db.shoutdown()
+
+print("finish..........")

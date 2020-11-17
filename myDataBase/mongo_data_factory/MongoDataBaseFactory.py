@@ -21,7 +21,7 @@ class MongoDataBaseFactory:
         if (hasattr(configs, 'use_ssh') and configs.use_ssh == 'yes'):
             self.__ssh='yes'
             self.__connect_db_by_ssh(configs)
-            self.__open = 'yes';
+            self.__open = 'yes'
         else:
             self.__ssh = 'no'
             self.__connect_db(configs)
