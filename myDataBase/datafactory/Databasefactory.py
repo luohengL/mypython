@@ -11,17 +11,21 @@ class DataBaseFactory:
         configs = db_config
         print(configs.hostname)
         if (hasattr(configs, 'use_ssh') and configs.use_ssh == 'yes'):
-            self.condb = self.connect_db_by_ssh(configs)
+            self.__ssh = 'yes'
+            self.__connect_db_by_ssh(configs)
+            self.__open = 'yes'
         else:
-            self.condb = self.connect_db(configs)
-        self.cursor = self.condb.cursor()
+            self.__ssh = 'no'
+            self.__connect_db(configs)
+            self.__open = 'yes'
+        self.__cursor = self.__condb.cursor()
 
-    def connect_db(self, db_config):
+    def __connect_db(self, db_config):
         print("数据库建立连接。。。。。。")
         configs = db_config
         # 连接database
         try:
-            self.condb = pymysql.connect(
+            self.__condb = pymysql.connect(
                 host=configs.hostname,
                 port=configs.port,
                 db=configs.database,
@@ -30,14 +34,13 @@ class DataBaseFactory:
                 charset=configs.charset)
         except Exception as abnormal:
             print("数据库连接错误，错误内容%s " % abnormal)
-        return self.condb
 
-    def connect_db_by_ssh(self, db_config):
+    def __connect_db_by_ssh(self, db_config):
         print("连接 ssh。。。。。。")
         configs = db_config
         private_key = paramiko.RSAKey.from_private_key_file(configs.private_key)
         # 连接database
-        self.server = SSHTunnelForwarder(
+        self.__server = SSHTunnelForwarder(
             # 指定ssh登录的跳转机的address
             ssh_address_or_host=(configs.ssh_hostname, configs.ssh_port),
             # 设置密钥
@@ -48,41 +51,47 @@ class DataBaseFactory:
             ssh_username=configs.ssh_username,
             # 设置数据库服务地址及端口
             remote_bind_address=(configs.hostname, configs.port))
-        self.server.start()
+        self.__server.start()
         try:
             print("数据库建立连接。。。。。。")
-            self.condb = pymysql.connect(database=configs.database,
+            self.__condb = pymysql.connect(database=configs.database,
                                          user=configs.user,
                                          password=configs.password,
-                                         host=self.server.local_bind_host,
+                                         host=self.__server.local_bind_host,
                                          # 因为上面没有设置 local_bind_address,所以这里必须是127.0.0.1,如果设置了，取设置的值就行了。
-                                         port=self.server.local_bind_port)  # 这里端口也一样，上面的server可以设置，没设置取这个就行了
+                                         port=self.__server.local_bind_port)  # 这里端口也一样，上面的server可以设置，没设置取这个就行了
             print("success")
         except Exception as abnormal:
             print("数据库连接错误，错误内容%s " % abnormal)
 
-        return self.condb
 
     def querysql(self, sql):
         try:
-            num = self.cursor.execute(sql)  # 影响的行数
+            num = self.__cursor.execute(sql)  # 影响的行数
         except Exception as abnormal:
             print("SQL有误，错误内容 %s" % abnormal)
 
         if num == 0:  # 0 则代表没有查询结果
             return "没有查询的结果.."
         elif num == 1:  # 影响行数 为1 fetchone
-            return list(self.cursor.fetchone())
+            return list(self.__cursor.fetchone())
         else:  # 多行情况下 使用fetchall
-            return list(self.cursor.fetchall())
+            return list(self.__cursor.fetchall())
 
     def get_column_name(self):
-        return [i[0] for i in self.cursor.description]
+        return [i[0] for i in self.__cursor.description]
 
     def commit(self):
-        self.condb.commit()
+        self.__condb.commit()
+
+    def shoutdown(self):
+        if self.__ssh == 'yes':
+            self.__cursor.close()
+            self.__condb.close()
+            self.__server.close()
+        self.__open = 'no';
+        print("server closed")
 
     def __del__(self):
-        self.cursor.close()
-        self.condb.close()
-        self.server.close()
+        if self.__open == 'yes':
+            self.shoutdown()
