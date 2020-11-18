@@ -1,7 +1,7 @@
 # @Time    : 2020/11/14 5:22 下午
 # @Author  : luoh
 # @Email   : luohenghlx@163.com
-# @File    : insurance_product_policy.py
+# @File    : product_report_No1.py
 # @Software: PyCharm
 # @Description: 保险公司产品保单统计
 
@@ -263,9 +263,12 @@ def data_generate():
     reject_time_info = get_reject_time()
     cancel_time_info = get_cancel_time()
 
-
+    #数据合并
     temp1 = pd.merge(basic_info,reject_time_info,on="fuse_policy_code",how='left')
     policy_info= pd.merge(temp1,cancel_time_info,on="fuse_policy_code",how='left')
+
+
+
 
     # time_filter = lambda x: x['order_time_month']=='2020-10'
 
@@ -275,8 +278,8 @@ def data_generate():
 
 
     ## 分组聚合
-
-
+    ## 保险公司名字转小写
+    policy_info['insurance_company_name'] = policy_info.insurance_company_name.str.lower()
     insurance_group = policy_info.groupby(["insurance_company_name"])
 
     policy_count=[]
@@ -324,7 +327,7 @@ def write_to_excel(policy_info):
     ## 导出到excel
     print("writing......")
     t = datetime.now().date() - timedelta(days=1)
-    writer = pd.ExcelWriter("insurance_product_policy" + (u'_%d%02d%02d.xlsx' % (t.year, t.month, t.day)))
+    writer = pd.ExcelWriter("product_report_No1" + (u'_%d%02d%02d.xlsx' % (t.year, t.month, t.day)))
 
     wb = writer.book
 
@@ -333,9 +336,9 @@ def write_to_excel(policy_info):
         {'bold': True, 'font_size': 13,'font_color': 'white', 'font_name': u'微软雅黑','valign': 'vcenter', 'bg_color': '#808080', 'align': 'center'})
     total_line_fmt = wb.add_format({ 'bg_color': '#A9A9A9'})
     merge_fmt = wb.add_format({ 'bold': True, 'font_size': 12,'bg_color': '#A9A9A9', 'align': 'center'})
-
-    policy_info.to_excel(writer, sheet_name=u'insurance_product_policy', encoding='utf8', header=True, index=False, startcol=0, startrow=0)
-    worksheet1 = writer.sheets[u'insurance_product_policy']
+    sheet_name = u'product_report_No1'
+    policy_info.to_excel(writer, sheet_name=sheet_name, encoding='utf8', header=True, index=False, startcol=0, startrow=0)
+    worksheet1 = writer.sheets[sheet_name]
     worksheet1.set_column('A:K', 20)
     for col_num, value in enumerate(policy_info.columns.values):
         worksheet1.write(0, col_num, value, header_fmt)
