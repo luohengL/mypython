@@ -65,9 +65,9 @@ class DataBaseFactory:
             print("数据库连接错误，错误内容%s " % abnormal)
 
 
-    def querysql(self, sql):
+    def querysql(self, sql,args=None):
         try:
-            num = self.__cursor.execute(sql)  # 影响的行数
+            num = self.__cursor.execute(sql,args)  # 影响的行数
         except Exception as abnormal:
             print("SQL有误，错误内容 %s" % abnormal)
 

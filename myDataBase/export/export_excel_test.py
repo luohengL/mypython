@@ -57,7 +57,7 @@ for col_num, value in enumerate(data_df.columns.values):
 worksheet1.merge_range('B1:D2', u'测试情况统计表', note_fmt)
 worksheet1.merge_range('G1:H2', '代理数据', note_fmt)
 # 设置列宽
-worksheet1.set_column('A:E', 20, fmt)
+worksheet1.set_column('A:D', 20, fmt)
 # 有条件设定表格格式：金额列
 worksheet1.conditional_format('G3:F%d' % l_end, {'type': 'cell', 'criteria': '>=', 'value': 1, 'format': amt_fmt})
 # 有条件设定表格格式：百分比

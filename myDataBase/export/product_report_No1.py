@@ -33,7 +33,16 @@ LEFT JOIN account_agent aa on pp.create_account=aa.mobile
 LEFT JOIN agent_type att on att.agent_type_code=aa.agent_type_code
 where  aa.test_account in (0,4) and policy_status not in (-1,101) and (p.pay_time_type !=2 OR (p.pay_time_type=2 and pp.pay_status=102))  and  DATE_ADD(pp.create_time,INTERVAL 7 HOUR)>'2020-08-01 00:00:00' and DATE_ADD(pp.create_time,INTERVAL 7 HOUR)<'2020-11-01 00:00:00'
 union
-
+SELECT pp.fuse_policy_code,att.agent_type_name,DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(pp.create_time,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Offline' as 'policy_source',ic.company_name 'insurance_company_name',(CASE pc.category_type WHEN 1 THEN 'General' WHEN 2 THEN 'Travel' WHEN 3 THEN 'Car' WHEN 4 THEN 'Moto' WHEN 6 THEN 'Life' WHEN 7 THEN 'PA' WHEN 8 THEN 'Property' WHEN 9 THEN 'Health' WHEN 11 THEN 'Marine Cargo' WHEN 13 THEN 'SME' WHEN 14 THEN 'MOVEABLE ALL RISK' WHEN 12 THEN 'ROP' WHEN 15 THEN 'VIP' ELSE '' END) as 'policy_type'  ,(pp.policy_amount-pp.admin_fee-pp.service_fee)  'gwp'
+from policy_general pp
+LEFT JOIN policy p on p.main_policy_code=pp.main_policy_code
+LEFT JOIN product pd on pd.product_code=pp.product_code
+LEFT JOIN product_category pc on pd.category_code=pc.category_code  
+LEFT JOIN insurance_company ic on  pd.insurance_company_code=ic.company_code
+LEFT JOIN account_agent aa on pp.create_account=aa.mobile
+LEFT JOIN agent_type att on att.agent_type_code=aa.agent_type_code
+where  aa.test_account in (0,4) and policy_status not in (-1,101) and (p.pay_time_type !=2 OR (p.pay_time_type=2 and pp.pay_status=102))  and  DATE_ADD(pp.create_time,INTERVAL 7 HOUR)>'2020-08-01 00:00:00' and DATE_ADD(pp.create_time,INTERVAL 7 HOUR)<'2020-11-01 00:00:00'
+union
 -- bacdkoor
 SELECT pp.fuse_policy_code,att.agent_type_name,DATE_ADD(pp.order_date,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(pp.order_date,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Backdoor' as 'policy_source',pp.insurance_company_name 'insurance_company_name',pp.policy_type as 'policy_type'  ,IF(pp.is_co_as=1,(ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 )) * ( ifnull( t.`company_percentage`, 0 ) / 100 ),ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 ))  'gwp'
 from policy_back_door pp
