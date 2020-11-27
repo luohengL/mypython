@@ -21,11 +21,19 @@ mgdb = mdbF.getdb()
 ##sql
 
 closing_sql = """
+SELECT *  from (
 -- auto
-SELECT partner_id as 'FUSE ID',`name` as 'PARTNER NAME',tag 'TAG NAME',count(1) 'closing_policy_count',SUM(gwp) as 'closing_PREMIUM' from (
-SELECT pp.fuse_policy_code,acc.partner_id,acc.`name`,raaw.tag,att.agent_type_name,DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(pp.create_time,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Offline' as 'policy_source',ic.company_name 'insurance_company_name',(CASE pc.category_type WHEN 1 THEN 'General' WHEN 2 THEN 'Travel' WHEN 3 THEN 'Car' WHEN 4 THEN 'Moto' WHEN 6 THEN 'Life' WHEN 7 THEN 'PA' WHEN 8 THEN 'Property' WHEN 9 THEN 'Health' WHEN 11 THEN 'Marine Cargo' WHEN 13 THEN 'SME' WHEN 14 THEN 'MOVEABLE ALL RISK' WHEN 12 THEN 'ROP' WHEN 15 THEN 'VIP' ELSE '' END) as 'policy type'  ,(pp.policy_amount-pp.admin_fee-pp.service_fee)  'gwp'
+SELECT pp.fuse_policy_code,pp.associated_policy_code,ic.company_name 'insurance_company_name',acc.partner_id,'Offline' as 'policy_source',pri.tag,att.agent_type_name 'partner_type',
+(CASE pc.category_type WHEN 1 THEN 'General' WHEN 2 THEN 'Travel' WHEN 3 THEN 'Car' WHEN 4 THEN 'Moto' WHEN 6 THEN 'Life' WHEN 7 THEN 'PA' WHEN 8 THEN 'Property' WHEN 9 THEN 'Health' WHEN 11 THEN 'Marine Cargo' WHEN 13 THEN 'SME' WHEN 14 THEN 'MOVEABLE ALL RISK' WHEN 12 THEN 'ROP' WHEN 15 THEN 'VIP' ELSE '' END) as 'policy type' ,
+(CASE pp.policy_status WHEN 101 THEN 'Quote' WHEN 102 THEN 'Pending' WHEN 103 THEN 'Inactive' WHEN 104 THEN 'Active' WHEN 105 THEN 'Expired' WHEN 106 THEN 'Cancel' WHEN 107 THEN 'Rejected' WHEN 108 THEN 'Invalid' WHEN 109 THEN 'FORCE CANCEL' ELSE '' END) AS policy_status ,
+(CASE pp.operation_status WHEN 101 THEN 'UNSUBMIT' WHEN 102 THEN 'PENGDING' WHEN 103 THEN 'APPROVED' WHEN 104 THEN 'RESUBMIT' WHEN 105 THEN 'DECLINE' WHEN 106 THEN 'BLACKLIST' WHEN 107 THEN 'CANCEL' WHEN 108 THEN 'CONFIRMED' WHEN 109 THEN 'Agent Agree' ELSE '' END) as operateStatus,
+(CASE pp.pay_status WHEN 101 THEN 'UNPAID' WHEN 102 THEN 'PAID' WHEN 103 THEN 'REFUND' ELSE '' END) as 'payment_status',
+DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR)'actual payment date' , DATE_ADD(pm.create_time,INTERVAL 7 HOUR)  'confirm payment date' 
 from policy_auto pp
 LEFT JOIN policy p on p.main_policy_code=pp.main_policy_code
+LEFT JOIN policy_auto_person pap on pap.person_code=pp.person_code
+LEFT JOIN policy_rm_info pri on pri.fuse_policy_code=pp.fuse_policy_code
+LEFT JOIN payment pm on pm.main_policy_code=pp.main_policy_code
 LEFT JOIN product pd on pd.product_code=pp.product_code
 LEFT JOIN product_category pc on pd.category_code=pc.category_code  
 LEFT JOIN insurance_company ic on  pd.insurance_company_code=ic.company_code
@@ -36,9 +44,18 @@ LEFT JOIN agent_type att on att.agent_type_code=aa.agent_type_code
 where  aa.test_account in (0,4) and policy_status not in (-1,101) and (p.pay_time_type !=2 OR (p.pay_time_type=2 and pp.pay_status=102))  and  DATE_FORMAT(DATE_ADD(pp.create_time,INTERVAL 7 HOUR),'%Y-%m') ='2020-10'
 union
 -- general
-SELECT pp.fuse_policy_code,acc.partner_id,acc.`name`,raaw.tag,att.agent_type_name,DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(pp.create_time,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Offline' as 'policy_source',ic.company_name 'insurance_company_name',(CASE pc.category_type WHEN 1 THEN 'General' WHEN 2 THEN 'Travel' WHEN 3 THEN 'Car' WHEN 4 THEN 'Moto' WHEN 6 THEN 'Life' WHEN 7 THEN 'PA' WHEN 8 THEN 'Property' WHEN 9 THEN 'Health' WHEN 11 THEN 'Marine Cargo' WHEN 13 THEN 'SME' WHEN 14 THEN 'MOVEABLE ALL RISK' WHEN 12 THEN 'ROP' WHEN 15 THEN 'VIP' ELSE '' END) as 'policy type'  ,(pp.policy_amount-pp.admin_fee-pp.service_fee)  'gwp'
+SELECT 
+ pp.fuse_policy_code,pp.associated_policy_code,ic.company_name 'insurance_company_name',acc.partner_id,'Offline' as 'policy_source',pri.tag,att.agent_type_name 'partner_type',
+(CASE pc.category_type WHEN 1 THEN 'General' WHEN 2 THEN 'Travel' WHEN 3 THEN 'Car' WHEN 4 THEN 'Moto' WHEN 6 THEN 'Life' WHEN 7 THEN 'PA' WHEN 8 THEN 'Property' WHEN 9 THEN 'Health' WHEN 11 THEN 'Marine Cargo' WHEN 13 THEN 'SME' WHEN 14 THEN 'MOVEABLE ALL RISK' WHEN 12 THEN 'ROP' WHEN 15 THEN 'VIP' ELSE '' END) as 'policy type' ,
+(CASE pp.policy_status WHEN 101 THEN 'Quote' WHEN 102 THEN 'Pending' WHEN 103 THEN 'Inactive' WHEN 104 THEN 'Active' WHEN 105 THEN 'Expired' WHEN 106 THEN 'Cancel' WHEN 107 THEN 'Rejected' WHEN 108 THEN 'Invalid' WHEN 109 THEN 'FORCE CANCEL' ELSE '' END) AS policy_status ,
+(CASE pp.operation_status WHEN 101 THEN 'UNSUBMIT' WHEN 102 THEN 'PENGDING' WHEN 103 THEN 'APPROVED' WHEN 104 THEN 'RESUBMIT' WHEN 105 THEN 'DECLINE' WHEN 106 THEN 'BLACKLIST' WHEN 107 THEN 'CANCEL' WHEN 108 THEN 'CONFIRMED' WHEN 109 THEN 'Agent Agree' ELSE '' END) as operateStatus,
+(CASE pp.pay_status WHEN 101 THEN 'UNPAID' WHEN 102 THEN 'PAID' WHEN 103 THEN 'REFUND' ELSE '' END) as 'payment_status',
+DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR)'actual payment date' , DATE_ADD(pm.create_time,INTERVAL 7 HOUR)  'confirm payment date' 
 from policy_general pp
 LEFT JOIN policy p on p.main_policy_code=pp.main_policy_code
+LEFT JOIN policy_general_person pgp on pgp.person_code=pp.insured_person_code
+LEFT JOIN policy_rm_info pri on pri.fuse_policy_code=pp.fuse_policy_code
+LEFT JOIN payment pm on pm.main_policy_code=pp.main_policy_code
 LEFT JOIN product pd on pd.product_code=pp.product_code
 LEFT JOIN product_category pc on pd.category_code=pc.category_code  
 LEFT JOIN insurance_company ic on  pd.insurance_company_code=ic.company_code
@@ -49,9 +66,18 @@ LEFT JOIN agent_type att on att.agent_type_code=aa.agent_type_code
 where  aa.test_account in (0,4) and policy_status not in (-1,101) and (p.pay_time_type !=2 OR (p.pay_time_type=2 and pp.pay_status=102))   and  DATE_FORMAT(DATE_ADD(pp.create_time,INTERVAL 7 HOUR),'%Y-%m') ='2020-10'
 union 
 -- bacdkoor
-SELECT pp.fuse_policy_code,acc.partner_id,acc.`name`,raaw.tag,att.agent_type_name,DATE_ADD(pp.order_date,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(pp.order_date,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Backdoor' as 'policy_source',pp.insurance_company_name 'insurance_company_name',pp.policy_type as 'policy type'  ,IF(pp.is_co_as=1,(ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 )) * ( ifnull( t.`company_percentage`, 0 ) / 100 ),ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 ))  'gwp'
+SELECT 
+pp.fuse_policy_code,pp.npp as  associated_policy_code,pp.insurance_company_name 'insurance_company_name',acc.partner_id,'Backdoor' as 'policy_source',pri.tag,att.agent_type_name 'partner_type',
+pp.policy_type as 'policy type' ,
+(CASE pp.policy_status WHEN 101 THEN 'Quote' WHEN 102 THEN 'Pending' WHEN 103 THEN 'Inactive' WHEN 104 THEN 'Active' WHEN 105 THEN 'Expired' WHEN 106 THEN 'Cancel' WHEN 107 THEN 'Rejected' WHEN 108 THEN 'Invalid' WHEN 109 THEN 'FORCE CANCEL' ELSE '' END) AS policy_status ,
+(CASE pp.operate_status WHEN 101 THEN 'UNSUBMIT' WHEN 102 THEN 'PENGDING' WHEN 103 THEN 'APPROVED' WHEN 104 THEN 'RESUBMIT' WHEN 105 THEN 'DECLINE' WHEN 106 THEN 'BLACKLIST' WHEN 107 THEN 'CANCEL' WHEN 108 THEN 'CONFIRMED' WHEN 109 THEN 'Agent Agree' ELSE '' END) as operateStatus,
+(CASE pp.pay_status WHEN 101 THEN 'UNPAID' WHEN 102 THEN 'PAID' WHEN 103 THEN 'REFUND' ELSE '' END) as 'payment_status',
+DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR)'actual payment date' , DATE_ADD(pm.create_time,INTERVAL 7 HOUR)  'confirm payment date' 
+
 from policy_back_door pp
+LEFT JOIN payment pm on pm.main_policy_code=pp.fuse_policy_code
 LEFT JOIN account_agent aa on pp.agent_mobile=aa.mobile
+LEFT JOIN policy_rm_info pri on pri.fuse_policy_code=pp.fuse_policy_code
 LEFT JOIN account acc on pp.agent_mobile=acc.mobile
 LEFT JOIN rm_advance_agent_waiting raaw on raaw.mobile=pp.agent_mobile
 LEFT JOIN agent_type att on att.agent_type_code=aa.agent_type_code
@@ -63,14 +89,26 @@ where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and  DATE_F
 
 union
 -- other
-SELECT pp.fuse_policy_code,acc.partner_id,acc.`name`,raaw.tag,att.agent_type_name,DATE_ADD(ci.create_time,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(ci.create_time,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Others' as 'policy_source',pp.insurance_company_order 'insurance_company_name',pp.product_name as 'policy type'  ,IFNULL(pp.pay_amount,0)-IFNULL(pp.admin_fee,0)   'gwp'
+SELECT 
+
+pp.fuse_policy_code,null as  associated_policy_code,pp.insurance_company_order 'insurance_company_name',acc.partner_id,'Backdoor' as 'policy_source',pri.tag,att.agent_type_name 'partner_type',
+pp.product_name as 'policy type' ,
+(CASE pp.policy_status WHEN 101 THEN 'Quote' WHEN 102 THEN 'Pending' WHEN 103 THEN 'Inactive' WHEN 104 THEN 'Active' WHEN 105 THEN 'Expired' WHEN 106 THEN 'Cancel' WHEN 107 THEN 'Rejected' WHEN 108 THEN 'Invalid' WHEN 109 THEN 'FORCE CANCEL' ELSE '' END) AS policy_status ,
+(CASE pp.operate_status WHEN 101 THEN 'Unsubmit' WHEN 102 THEN 'Submit' WHEN 103 THEN 'Got QS' WHEN 104 THEN 'Accepted' WHEN 105 THEN 'Rejected' WHEN 106 THEN 'Change' WHEN 107 THEN 'Wait CN' WHEN 108 THEN 'Got CN' WHEN 109 THEN 'Approved' WHEN 110 THEN 'Declined' WHEN 111 THEN 'Got CN' WHEN 112 THEN 'Got CN' ELSE '' END) as operateStatus ,
+(CASE pp.pay_status WHEN 101 THEN 'UNPAID' WHEN 102 THEN 'PAID' WHEN 103 THEN 'REFUND' ELSE '' END) as 'payment_status',
+DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR)'actual payment date' , DATE_ADD(pm.create_time,INTERVAL 7 HOUR)  'confirm payment date' 
+
 from external_policy_common pp
+LEFT JOIN policy_rm_info pri on pri.fuse_policy_code=pp.fuse_policy_code
+LEFT JOIN payment pm on pm.main_policy_code=pp.fuse_policy_code
 LEFT JOIN  (SELECT fuse_policy_code,send_time 'create_time' from  covernote_information where type=2 GROUP BY fuse_policy_code ) ci on ci.fuse_policy_code=pp.fuse_policy_code 
 LEFT JOIN account_agent aa on pp.create_account=aa.mobile
 LEFT JOIN account acc on pp.create_account=acc.mobile
 LEFT JOIN rm_advance_agent_waiting raaw on raaw.mobile=pp.create_account
 LEFT JOIN agent_type att on att.agent_type_code=aa.agent_type_code
-where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and DATE_FORMAT(DATE_ADD(ci.create_time,INTERVAL 7 HOUR),'%Y-%m')='2020-10') t where t.agent_type_name in (
+where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and DATE_FORMAT(DATE_ADD(ci.create_time,INTERVAL 7 HOUR),'%Y-%m')='2020-10' 
+
+) t where  t.partner_type in (
 "Agent Type ARMS",
 "Agent Type ARMS ADMIN",
 "CEKPREMI-AGENT-TAJ",
@@ -213,41 +251,64 @@ where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and DATE_FO
 "CEKPREMI-AGENT-Q",
 "TAJ-Automate",
 "testing PO",
-"Nadia Yunita C") GROUP BY partner_id;
+"Nadia Yunita C") ;
+
 """
 
 
 paid_sql = """
-SELECT partner_id as 'FUSE ID',`name` as 'PARTNER NAME',tag 'TAG NAME',count(1) 'paid_policy_count',SUM(gwp) as 'paid_PREMIUM' from (
-SELECT pp.fuse_policy_code,acc.partner_id,acc.`name`,raaw.tag,att.agent_type_name,DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(pp.create_time,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Offline' as 'policy_source',ic.company_name 'insurance_company_name',(CASE pc.category_type WHEN 1 THEN 'General' WHEN 2 THEN 'Travel' WHEN 3 THEN 'Car' WHEN 4 THEN 'Moto' WHEN 6 THEN 'Life' WHEN 7 THEN 'PA' WHEN 8 THEN 'Property' WHEN 9 THEN 'Health' WHEN 11 THEN 'Marine Cargo' WHEN 13 THEN 'SME' WHEN 14 THEN 'MOVEABLE ALL RISK' WHEN 12 THEN 'ROP' WHEN 15 THEN 'VIP' ELSE '' END) as 'policy type'  ,(pp.policy_amount-pp.admin_fee-pp.service_fee)  'gwp'
+SELECT * from (
+
+-- auto
+SELECT DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',pap.`name` 'insured_name',acc.`name` 'partner_name' ,att.agent_type_name 'partner_type' ,acc.partner_id,pp.fuse_policy_code,pp.company_policy_code 'insurance_number' ,(pp.policy_amount-pp.admin_fee-pp.service_fee)  ' premium ' ,
+(CASE pp.pay_status WHEN 101 THEN 'UNPAID' WHEN 102 THEN 'PAID' WHEN 103 THEN 'REFUND' ELSE '' END) as 'payment_status',
+(CASE pp.policy_status WHEN 101 THEN 'Quote' WHEN 102 THEN 'Pending' WHEN 103 THEN 'Inactive' WHEN 104 THEN 'Active' WHEN 105 THEN 'Expired' WHEN 106 THEN 'Cancel' WHEN 107 THEN 'Rejected' WHEN 108 THEN 'Invalid' WHEN 109 THEN 'FORCE CANCEL' ELSE '' END) AS policy_status ,
+(CASE pp.operation_status WHEN 101 THEN 'UNSUBMIT' WHEN 102 THEN 'PENGDING' WHEN 103 THEN 'APPROVED' WHEN 104 THEN 'RESUBMIT' WHEN 105 THEN 'DECLINE' WHEN 106 THEN 'BLACKLIST' WHEN 107 THEN 'CANCEL' WHEN 108 THEN 'CONFIRMED' WHEN 109 THEN 'Agent Agree' ELSE '' END) as operateStatus,
+ic.company_name 'insurance_company_name',(CASE pc.category_type WHEN 1 THEN 'General' WHEN 2 THEN 'Travel' WHEN 3 THEN 'Car' WHEN 4 THEN 'Moto' WHEN 6 THEN 'Life' WHEN 7 THEN 'PA' WHEN 8 THEN 'Property' WHEN 9 THEN 'Health' WHEN 11 THEN 'Marine Cargo' WHEN 13 THEN 'SME' WHEN 14 THEN 'MOVEABLE ALL RISK' WHEN 12 THEN 'ROP' WHEN 15 THEN 'VIP' ELSE '' END) as 'policy type' ,'Offline' as 'policy_source',
+DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR)'actual payment date' , DATE_ADD(pm.create_time,INTERVAL 7 HOUR)  'confirm payment date' 
 from policy_auto pp
 LEFT JOIN policy p on p.main_policy_code=pp.main_policy_code
+LEFT JOIN policy_auto_person pap on pap.person_code=pp.person_code
+LEFT JOIN payment pm on pm.main_policy_code=pp.main_policy_code
 LEFT JOIN product pd on pd.product_code=pp.product_code
 LEFT JOIN product_category pc on pd.category_code=pc.category_code  
 LEFT JOIN insurance_company ic on  pd.insurance_company_code=ic.company_code
 LEFT JOIN account_agent aa on pp.create_account=aa.mobile
 LEFT JOIN account acc on pp.create_account=acc.mobile
 LEFT JOIN rm_advance_agent_waiting raaw on raaw.mobile=pp.create_account
-LEFT JOIN payment pm on pm.main_policy_code=pp.main_policy_code
 LEFT JOIN agent_type att on att.agent_type_code=aa.agent_type_code
 where  aa.test_account in (0,4) and policy_status not in (-1,101) and (p.pay_time_type !=2 OR (p.pay_time_type=2 and pp.pay_status=102))  and  DATE_FORMAT(DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR),'%Y-%m') ='2020-10'
 union
 -- general
-SELECT pp.fuse_policy_code,acc.partner_id,acc.`name`,raaw.tag,att.agent_type_name,DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(pp.create_time,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Offline' as 'policy_source',ic.company_name 'insurance_company_name',(CASE pc.category_type WHEN 1 THEN 'General' WHEN 2 THEN 'Travel' WHEN 3 THEN 'Car' WHEN 4 THEN 'Moto' WHEN 6 THEN 'Life' WHEN 7 THEN 'PA' WHEN 8 THEN 'Property' WHEN 9 THEN 'Health' WHEN 11 THEN 'Marine Cargo' WHEN 13 THEN 'SME' WHEN 14 THEN 'MOVEABLE ALL RISK' WHEN 12 THEN 'ROP' WHEN 15 THEN 'VIP' ELSE '' END) as 'policy type'  ,(pp.policy_amount-pp.admin_fee-pp.service_fee)  'gwp'
+SELECT 
+DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',pgp.`name` 'insured_name',acc.`name` 'partner_name' ,att.agent_type_name 'partner_type' ,acc.partner_id,pp.fuse_policy_code,pp.company_policy_code 'insurance_number' ,(pp.policy_amount-pp.admin_fee-pp.service_fee)  ' premium ' ,
+(CASE pp.pay_status WHEN 101 THEN 'UNPAID' WHEN 102 THEN 'PAID' WHEN 103 THEN 'REFUND' ELSE '' END) as 'payment_status',
+(CASE pp.policy_status WHEN 101 THEN 'Quote' WHEN 102 THEN 'Pending' WHEN 103 THEN 'Inactive' WHEN 104 THEN 'Active' WHEN 105 THEN 'Expired' WHEN 106 THEN 'Cancel' WHEN 107 THEN 'Rejected' WHEN 108 THEN 'Invalid' WHEN 109 THEN 'FORCE CANCEL' ELSE '' END) AS policy_status ,
+(CASE pp.operation_status WHEN 101 THEN 'UNSUBMIT' WHEN 102 THEN 'PENGDING' WHEN 103 THEN 'APPROVED' WHEN 104 THEN 'RESUBMIT' WHEN 105 THEN 'DECLINE' WHEN 106 THEN 'BLACKLIST' WHEN 107 THEN 'CANCEL' WHEN 108 THEN 'CONFIRMED' WHEN 109 THEN 'Agent Agree' ELSE '' END) as operateStatus,
+ic.company_name 'insurance_company_name',(CASE pc.category_type WHEN 1 THEN 'General' WHEN 2 THEN 'Travel' WHEN 3 THEN 'Car' WHEN 4 THEN 'Moto' WHEN 6 THEN 'Life' WHEN 7 THEN 'PA' WHEN 8 THEN 'Property' WHEN 9 THEN 'Health' WHEN 11 THEN 'Marine Cargo' WHEN 13 THEN 'SME' WHEN 14 THEN 'MOVEABLE ALL RISK' WHEN 12 THEN 'ROP' WHEN 15 THEN 'VIP' ELSE '' END) as 'policy type' ,'Offline' as 'policy_source',
+DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR)'actual payment date' , DATE_ADD(pm.create_time,INTERVAL 7 HOUR)  'confirm payment date' 
 from policy_general pp
 LEFT JOIN policy p on p.main_policy_code=pp.main_policy_code
+LEFT JOIN policy_general_person pgp on pgp.person_code=pp.insured_person_code
+LEFT JOIN payment pm on pm.main_policy_code=pp.main_policy_code
 LEFT JOIN product pd on pd.product_code=pp.product_code
 LEFT JOIN product_category pc on pd.category_code=pc.category_code  
 LEFT JOIN insurance_company ic on  pd.insurance_company_code=ic.company_code
 LEFT JOIN account_agent aa on pp.create_account=aa.mobile
 LEFT JOIN account acc on pp.create_account=acc.mobile
 LEFT JOIN rm_advance_agent_waiting raaw on raaw.mobile=pp.create_account
-LEFT JOIN payment pm on pm.main_policy_code=pp.main_policy_code
 LEFT JOIN agent_type att on att.agent_type_code=aa.agent_type_code
 where  aa.test_account in (0,4) and policy_status not in (-1,101) and (p.pay_time_type !=2 OR (p.pay_time_type=2 and pp.pay_status=102))   and  DATE_FORMAT(DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR),'%Y-%m') ='2020-10'
 union 
 -- bacdkoor
-SELECT pp.fuse_policy_code,acc.partner_id,acc.`name`,raaw.tag,att.agent_type_name,DATE_ADD(pp.order_date,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(pp.order_date,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Backdoor' as 'policy_source',pp.insurance_company_name 'insurance_company_name',pp.policy_type as 'policy type'  ,IF(pp.is_co_as=1,(ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 )) * ( ifnull( t.`company_percentage`, 0 ) / 100 ),ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 ))  'gwp'
+SELECT 
+DATE_ADD(pp.order_date,INTERVAL 7 HOUR) 'order_time',pp.insured_person_name 'insured_name',acc.`name` 'partner_name' ,att.agent_type_name 'partner_type' ,acc.partner_id,pp.fuse_policy_code,pp.company_policy_code 'insurance_number' ,IF(pp.is_co_as=1,(ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 )) * ( ifnull( t.`company_percentage`, 0 ) / 100 ),ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 ))  ' premium ' ,
+(CASE pp.pay_status WHEN 101 THEN 'UNPAID' WHEN 102 THEN 'PAID' WHEN 103 THEN 'REFUND' ELSE '' END) as 'payment_status',
+(CASE pp.policy_status WHEN 101 THEN 'Quote' WHEN 102 THEN 'Pending' WHEN 103 THEN 'Inactive' WHEN 104 THEN 'Active' WHEN 105 THEN 'Expired' WHEN 106 THEN 'Cancel' WHEN 107 THEN 'Rejected' WHEN 108 THEN 'Invalid' WHEN 109 THEN 'FORCE CANCEL' ELSE '' END) AS policy_status ,
+(CASE pp.operate_status WHEN 101 THEN 'UNSUBMIT' WHEN 102 THEN 'PENGDING' WHEN 103 THEN 'APPROVED' WHEN 104 THEN 'RESUBMIT' WHEN 105 THEN 'DECLINE' WHEN 106 THEN 'BLACKLIST' WHEN 107 THEN 'CANCEL' WHEN 108 THEN 'CONFIRMED' WHEN 109 THEN 'Agent Agree' ELSE '' END) as operateStatus,
+pp.insurance_company_name  'insurance_company_name',pp.policy_type as 'policy type' ,'Backdoor' as 'policy_source',
+DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR)'actual payment date' , DATE_ADD(pm.create_time,INTERVAL 7 HOUR)  'confirm payment date' 
+
 from policy_back_door pp
 LEFT JOIN payment pm on pm.main_policy_code=pp.fuse_policy_code
 LEFT JOIN account_agent aa on pp.agent_mobile=aa.mobile
@@ -262,7 +323,13 @@ where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and  DATE_F
 
 union
 -- other
-SELECT pp.fuse_policy_code,acc.partner_id,acc.`name`,raaw.tag,att.agent_type_name,DATE_ADD(ci.create_time,INTERVAL 7 HOUR) 'order_time',DATE_FORMAT(DATE_ADD(ci.create_time,INTERVAL 7 HOUR),'%Y-%m') 'order_time_month'  ,'Others' as 'policy_source',pp.insurance_company_order 'insurance_company_name',pp.product_name as 'policy type'  ,IFNULL(pp.pay_amount,0)-IFNULL(pp.admin_fee,0)   'gwp'
+SELECT 
+DATE_ADD(ci.create_time,INTERVAL 7 HOUR) 'order_time',pp.insured_name 'insured_name',acc.`name` 'partner_name' ,att.agent_type_name 'partner_type' ,acc.partner_id,pp.fuse_policy_code,pp.company_policy_code 'insurance_number' ,IFNULL(pp.pay_amount,0)-IFNULL(pp.admin_fee,0)  ' premium ' ,
+(CASE pp.pay_status WHEN 101 THEN 'UNPAID' WHEN 102 THEN 'PAID' WHEN 103 THEN 'REFUND' ELSE '' END) as 'payment_status',
+(CASE pp.policy_status WHEN 101 THEN 'Quote' WHEN 102 THEN 'Pending' WHEN 103 THEN 'Inactive' WHEN 104 THEN 'Active' WHEN 105 THEN 'Expired' WHEN 106 THEN 'Cancel' WHEN 107 THEN 'Rejected' WHEN 108 THEN 'Invalid' WHEN 109 THEN 'FORCE CANCEL' ELSE '' END) AS policy_status ,
+(CASE pp.operate_status WHEN 101 THEN 'Unsubmit' WHEN 102 THEN 'Submit' WHEN 103 THEN 'Got QS' WHEN 104 THEN 'Accepted' WHEN 105 THEN 'Rejected' WHEN 106 THEN 'Change' WHEN 107 THEN 'Wait CN' WHEN 108 THEN 'Got CN' WHEN 109 THEN 'Approved' WHEN 110 THEN 'Declined' WHEN 111 THEN 'Got CN' WHEN 112 THEN 'Got CN' ELSE '' END) as operateStatus ,
+pp.insurance_company_order  'insurance_company_name',pp.product_name as 'policy type' ,'Others' as 'policy_source',
+DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR)'actual payment date' , DATE_ADD(pm.create_time,INTERVAL 7 HOUR)  'confirm payment date' 
 from external_policy_common pp
 LEFT JOIN payment pm on pm.main_policy_code=pp.fuse_policy_code
 LEFT JOIN  (SELECT fuse_policy_code,send_time 'create_time' from  covernote_information where type=2 GROUP BY fuse_policy_code ) ci on ci.fuse_policy_code=pp.fuse_policy_code 
@@ -270,7 +337,16 @@ LEFT JOIN account_agent aa on pp.create_account=aa.mobile
 LEFT JOIN account acc on pp.create_account=acc.mobile
 LEFT JOIN rm_advance_agent_waiting raaw on raaw.mobile=pp.create_account
 LEFT JOIN agent_type att on att.agent_type_code=aa.agent_type_code
-where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and DATE_FORMAT(DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR),'%Y-%m')='2020-10') t where t.agent_type_name in (
+where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and DATE_FORMAT(DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR),'%Y-%m')='2020-10' 
+
+) t where t.partner_id in ('a436bb69',
+'7704D255',
+'9D7ED67C',
+'98BCDE34',
+'a43d4f37',
+'99965CEC',
+'9C53AF4A',
+'7975CE3B') and t.partner_type in (
 "Agent Type ARMS",
 "Agent Type ARMS ADMIN",
 "CEKPREMI-AGENT-TAJ",
@@ -413,43 +489,62 @@ where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and DATE_FO
 "CEKPREMI-AGENT-Q",
 "TAJ-Automate",
 "testing PO",
-"Nadia Yunita C") GROUP BY partner_id;
+"Nadia Yunita C");
 """
 
 
 cancel_sql = """
-
-SELECT partner_id as 'FUSE ID',`name` as 'PARTNER NAME',tag 'TAG NAME',count(1) 'cancel_policy_count',SUM(gwp) as 'cancel_PREMIUM' from (
-SELECT pp.fuse_policy_code,acc.partner_id,acc.`name`,raaw.tag,att.agent_type_name ,(pp.policy_amount-pp.admin_fee-pp.service_fee)  'gwp'
+SELECT * from (
+-- auto
+SELECT DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',pap.`name` 'insured_name',acc.`name` 'partner_name' ,att.agent_type_name 'partner_type' ,acc.partner_id,pp.fuse_policy_code,pp.company_policy_code 'insurance_number' ,(pp.policy_amount-pp.admin_fee-pp.service_fee)  ' premium ' ,
+(CASE pp.pay_status WHEN 101 THEN 'UNPAID' WHEN 102 THEN 'PAID' WHEN 103 THEN 'REFUND' ELSE '' END) as 'payment_status',
+(CASE pp.policy_status WHEN 101 THEN 'Quote' WHEN 102 THEN 'Pending' WHEN 103 THEN 'Inactive' WHEN 104 THEN 'Active' WHEN 105 THEN 'Expired' WHEN 106 THEN 'Cancel' WHEN 107 THEN 'Rejected' WHEN 108 THEN 'Invalid' WHEN 109 THEN 'FORCE CANCEL' ELSE '' END) AS policy_status ,
+(CASE pp.operation_status WHEN 101 THEN 'UNSUBMIT' WHEN 102 THEN 'PENGDING' WHEN 103 THEN 'APPROVED' WHEN 104 THEN 'RESUBMIT' WHEN 105 THEN 'DECLINE' WHEN 106 THEN 'BLACKLIST' WHEN 107 THEN 'CANCEL' WHEN 108 THEN 'CONFIRMED' WHEN 109 THEN 'Agent Agree' ELSE '' END) as operateStatus,
+ic.company_name 'insurance_company_name',(CASE pc.category_type WHEN 1 THEN 'General' WHEN 2 THEN 'Travel' WHEN 3 THEN 'Car' WHEN 4 THEN 'Moto' WHEN 6 THEN 'Life' WHEN 7 THEN 'PA' WHEN 8 THEN 'Property' WHEN 9 THEN 'Health' WHEN 11 THEN 'Marine Cargo' WHEN 13 THEN 'SME' WHEN 14 THEN 'MOVEABLE ALL RISK' WHEN 12 THEN 'ROP' WHEN 15 THEN 'VIP' ELSE '' END) as 'policy type' ,'Offline' as 'policy_source',
+ DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR)'actual payment date' , DATE_ADD(pm.create_time,INTERVAL 7 HOUR)  'confirm payment date' 
 from policy_auto pp
 LEFT JOIN policy p on p.main_policy_code=pp.main_policy_code
+LEFT JOIN policy_auto_person pap on pap.person_code=pp.person_code
+LEFT JOIN payment pm on pm.main_policy_code=pp.main_policy_code
 LEFT JOIN product pd on pd.product_code=pp.product_code
 LEFT JOIN product_category pc on pd.category_code=pc.category_code  
 LEFT JOIN insurance_company ic on  pd.insurance_company_code=ic.company_code
 LEFT JOIN account_agent aa on pp.create_account=aa.mobile
 LEFT JOIN account acc on pp.create_account=acc.mobile
 LEFT JOIN rm_advance_agent_waiting raaw on raaw.mobile=pp.create_account
-LEFT JOIN payment pm on pm.main_policy_code=pp.main_policy_code
 LEFT JOIN agent_type att on att.agent_type_code=aa.agent_type_code
 where  aa.test_account in (0,4) and policy_status not in (-1,101) and (p.pay_time_type !=2 OR (p.pay_time_type=2 and pp.pay_status=102))  and   pp.fuse_policy_code in %s
-
 union
 -- general
-SELECT pp.fuse_policy_code,acc.partner_id,acc.`name`,raaw.tag,att.agent_type_name,(pp.policy_amount-pp.admin_fee-pp.service_fee)  'gwp'
+SELECT 
+DATE_ADD(pp.create_time,INTERVAL 7 HOUR) 'order_time',pgp.`name` 'insured_name',acc.`name` 'partner_name' ,att.agent_type_name 'partner_type' ,acc.partner_id,pp.fuse_policy_code,pp.company_policy_code 'insurance_number' ,(pp.policy_amount-pp.admin_fee-pp.service_fee)  ' premium ' ,
+(CASE pp.pay_status WHEN 101 THEN 'UNPAID' WHEN 102 THEN 'PAID' WHEN 103 THEN 'REFUND' ELSE '' END) as 'payment_status',
+(CASE pp.policy_status WHEN 101 THEN 'Quote' WHEN 102 THEN 'Pending' WHEN 103 THEN 'Inactive' WHEN 104 THEN 'Active' WHEN 105 THEN 'Expired' WHEN 106 THEN 'Cancel' WHEN 107 THEN 'Rejected' WHEN 108 THEN 'Invalid' WHEN 109 THEN 'FORCE CANCEL' ELSE '' END) AS policy_status ,
+(CASE pp.operation_status WHEN 101 THEN 'UNSUBMIT' WHEN 102 THEN 'PENGDING' WHEN 103 THEN 'APPROVED' WHEN 104 THEN 'RESUBMIT' WHEN 105 THEN 'DECLINE' WHEN 106 THEN 'BLACKLIST' WHEN 107 THEN 'CANCEL' WHEN 108 THEN 'CONFIRMED' WHEN 109 THEN 'Agent Agree' ELSE '' END) as operateStatus,
+ic.company_name 'insurance_company_name',(CASE pc.category_type WHEN 1 THEN 'General' WHEN 2 THEN 'Travel' WHEN 3 THEN 'Car' WHEN 4 THEN 'Moto' WHEN 6 THEN 'Life' WHEN 7 THEN 'PA' WHEN 8 THEN 'Property' WHEN 9 THEN 'Health' WHEN 11 THEN 'Marine Cargo' WHEN 13 THEN 'SME' WHEN 14 THEN 'MOVEABLE ALL RISK' WHEN 12 THEN 'ROP' WHEN 15 THEN 'VIP' ELSE '' END) as 'policy type' ,'Offline' as 'policy_source',
+DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR)'actual payment date' , DATE_ADD(pm.create_time,INTERVAL 7 HOUR)  'confirm payment date' 
 from policy_general pp
 LEFT JOIN policy p on p.main_policy_code=pp.main_policy_code
+LEFT JOIN policy_general_person pgp on pgp.person_code=pp.insured_person_code
+LEFT JOIN payment pm on pm.main_policy_code=pp.main_policy_code
 LEFT JOIN product pd on pd.product_code=pp.product_code
 LEFT JOIN product_category pc on pd.category_code=pc.category_code  
 LEFT JOIN insurance_company ic on  pd.insurance_company_code=ic.company_code
 LEFT JOIN account_agent aa on pp.create_account=aa.mobile
 LEFT JOIN account acc on pp.create_account=acc.mobile
 LEFT JOIN rm_advance_agent_waiting raaw on raaw.mobile=pp.create_account
-LEFT JOIN payment pm on pm.main_policy_code=pp.main_policy_code
 LEFT JOIN agent_type att on att.agent_type_code=aa.agent_type_code
-where  aa.test_account in (0,4) and policy_status not in (-1,101) and (p.pay_time_type !=2 OR (p.pay_time_type=2 and pp.pay_status=102))   and   pp.fuse_policy_code in %s
-union
+where  aa.test_account in (0,4) and policy_status not in (-1,101) and (p.pay_time_type !=2 OR (p.pay_time_type=2 and pp.pay_status=102))   and  pp.fuse_policy_code in %s
+union 
 -- bacdkoor
-SELECT pp.fuse_policy_code,acc.partner_id,acc.`name`,raaw.tag,att.agent_type_name ,IF(pp.is_co_as=1,(ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 )) * ( ifnull( t.`company_percentage`, 0 ) / 100 ),ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 ))  'gwp'
+SELECT 
+DATE_ADD(pp.order_date,INTERVAL 7 HOUR) 'order_time',pp.insured_person_name 'insured_name',acc.`name` 'partner_name' ,att.agent_type_name 'partner_type' ,acc.partner_id,pp.fuse_policy_code,pp.company_policy_code 'insurance_number' ,IF(pp.is_co_as=1,(ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 )) * ( ifnull( t.`company_percentage`, 0 ) / 100 ),ifnull( `pp`.`basic_premium`, 0 ) + ifnull( `pp`.`rider_total_premium`, 0 ))  ' premium ' ,
+(CASE pp.pay_status WHEN 101 THEN 'UNPAID' WHEN 102 THEN 'PAID' WHEN 103 THEN 'REFUND' ELSE '' END) as 'payment_status',
+(CASE pp.policy_status WHEN 101 THEN 'Quote' WHEN 102 THEN 'Pending' WHEN 103 THEN 'Inactive' WHEN 104 THEN 'Active' WHEN 105 THEN 'Expired' WHEN 106 THEN 'Cancel' WHEN 107 THEN 'Rejected' WHEN 108 THEN 'Invalid' WHEN 109 THEN 'FORCE CANCEL' ELSE '' END) AS policy_status ,
+(CASE pp.operate_status WHEN 101 THEN 'UNSUBMIT' WHEN 102 THEN 'PENGDING' WHEN 103 THEN 'APPROVED' WHEN 104 THEN 'RESUBMIT' WHEN 105 THEN 'DECLINE' WHEN 106 THEN 'BLACKLIST' WHEN 107 THEN 'CANCEL' WHEN 108 THEN 'CONFIRMED' WHEN 109 THEN 'Agent Agree' ELSE '' END) as operateStatus,
+pp.insurance_company_name  'insurance_company_name',pp.policy_type as 'policy type' ,'Backdoor' as 'policy_source',
+DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR)'actual payment date' , DATE_ADD(pm.create_time,INTERVAL 7 HOUR)  'confirm payment date' 
+
 from policy_back_door pp
 LEFT JOIN payment pm on pm.main_policy_code=pp.fuse_policy_code
 LEFT JOIN account_agent aa on pp.agent_mobile=aa.mobile
@@ -460,11 +555,17 @@ LEFT JOIN (
 	SELECT sum(`pbdca`.`company_percentage` ) AS `company_percentage`,`pbdca`.`fuse_policy_code` AS `fuse_policy_code` FROM `policy_back_door_co_as` `pbdca` 
 	WHERE ( `pbdca`.`is_fuse` = 1 ) GROUP BY `pbdca`.`fuse_policy_code`
 ) t on pp.fuse_policy_code=t.fuse_policy_code
-where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and  pp.fuse_policy_code in %s
+where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and   pp.fuse_policy_code in %s
 
 union
 -- other
-SELECT pp.fuse_policy_code,acc.partner_id,acc.`name`,raaw.tag,att.agent_type_name,IFNULL(pp.pay_amount,0)-IFNULL(pp.admin_fee,0) 'gwp'
+SELECT 
+DATE_ADD(ci.create_time,INTERVAL 7 HOUR) 'order_time',pp.insured_name 'insured_name',acc.`name` 'partner_name' ,att.agent_type_name 'partner_type' ,acc.partner_id,pp.fuse_policy_code,pp.company_policy_code 'insurance_number' ,IFNULL(pp.pay_amount,0)-IFNULL(pp.admin_fee,0)  ' premium ' ,
+(CASE pp.pay_status WHEN 101 THEN 'UNPAID' WHEN 102 THEN 'PAID' WHEN 103 THEN 'REFUND' ELSE '' END) as 'payment_status',
+(CASE pp.policy_status WHEN 101 THEN 'Quote' WHEN 102 THEN 'Pending' WHEN 103 THEN 'Inactive' WHEN 104 THEN 'Active' WHEN 105 THEN 'Expired' WHEN 106 THEN 'Cancel' WHEN 107 THEN 'Rejected' WHEN 108 THEN 'Invalid' WHEN 109 THEN 'FORCE CANCEL' ELSE '' END) AS policy_status ,
+(CASE pp.operate_status WHEN 101 THEN 'Unsubmit' WHEN 102 THEN 'Submit' WHEN 103 THEN 'Got QS' WHEN 104 THEN 'Accepted' WHEN 105 THEN 'Rejected' WHEN 106 THEN 'Change' WHEN 107 THEN 'Wait CN' WHEN 108 THEN 'Got CN' WHEN 109 THEN 'Approved' WHEN 110 THEN 'Declined' WHEN 111 THEN 'Got CN' WHEN 112 THEN 'Got CN' ELSE '' END) as operateStatus ,
+pp.insurance_company_order  'insurance_company_name',pp.product_name as 'policy type' ,'Others' as 'policy_source',
+DATE_ADD(pm.actual_pay_time,INTERVAL 7 HOUR)'actual payment date' , DATE_ADD(pm.create_time,INTERVAL 7 HOUR)  'confirm payment date'  
 from external_policy_common pp
 LEFT JOIN payment pm on pm.main_policy_code=pp.fuse_policy_code
 LEFT JOIN  (SELECT fuse_policy_code,send_time 'create_time' from  covernote_information where type=2 GROUP BY fuse_policy_code ) ci on ci.fuse_policy_code=pp.fuse_policy_code 
@@ -473,7 +574,15 @@ LEFT JOIN account acc on pp.create_account=acc.mobile
 LEFT JOIN rm_advance_agent_waiting raaw on raaw.mobile=pp.create_account
 LEFT JOIN agent_type att on att.agent_type_code=aa.agent_type_code
 where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and  pp.fuse_policy_code in %s
-) t where t.agent_type_name in (
+
+) t where  t.partner_id in ('a436bb69',
+'7704D255',
+'9D7ED67C',
+'98BCDE34',
+'a43d4f37',
+'99965CEC',
+'9C53AF4A',
+'7975CE3B') and  t.partner_type in (
 "Agent Type ARMS",
 "Agent Type ARMS ADMIN",
 "CEKPREMI-AGENT-TAJ",
@@ -616,8 +725,9 @@ where  aa.test_account in (0,4) and pp.policy_status not in (-1,101) and  pp.fus
 "CEKPREMI-AGENT-Q",
 "TAJ-Automate",
 "testing PO",
-"Nadia Yunita C") GROUP BY partner_id;
+"Nadia Yunita C");
 """
+
 backdoor_cancel_sql = """
     SELECT pp.fuse_policy_code, DATE_FORMAT(DATE_ADD(pbdr1.cancel_date,INTERVAL 7 HOUR),'%Y-%m') 'cancel_time', DATE_FORMAT(DATE_ADD(pp.force_cancel_time,INTERVAL 7 HOUR),'%Y-%m') 'force_cancel_time' from policy_back_door pp LEFT JOIN  policy_back_door_review pbdr1 ON ( pp.fuse_policy_code = pbdr1.fuse_policy_code AND  (pbdr1.review_opinion = 'Cancel' or (pbdr1.type = 2 AND pbdr1.review_opinion = 'Approved' AND pbdr1.cancel_policy = 1)))
 where pbdr1.cancel_date is not null or  pp.force_cancel_time is not null ;
@@ -626,8 +736,6 @@ where pbdr1.cancel_date is not null or  pp.force_cancel_time is not null ;
 offline_reject ="""
 SELECT fuse_code fuse_policy_code,DATE_FORMAT(DATE_ADD(app_time,INTERVAL 7 HOUR),'%Y-%m') reject_time from policy_approve_record where approve_type in (105,106);
 """
-
-
 backdoor_reject="""
 SELECT fuse_policy_code,DATE_FORMAT(DATE_ADD(operate_time,INTERVAL 7 HOUR),'%Y-%m') reject_time from policy_back_door_review where confirm_opinion='Reject';
 """
@@ -694,35 +802,29 @@ def get_cancel_time():
     return data_df
 
 
-def data_generate():
+def cancel_data_generate():
     ## cancel 时间
     reject_time_info = get_reject_time()
     cancel_time_info = get_cancel_time()
     cancel_base_info = pd.merge(reject_time_info, cancel_time_info, on="fuse_policy_code", how='outer')
+
     time_filter = lambda x:  x['reject_time'] == '2020-10' or  x['cancel_time'] == '2020-10' or x['force_cancel_time'] == '2020-10'
+
     cancel_base_info = cancel_base_info[cancel_base_info.apply(time_filter, axis=1)]
+
     cancel_policy_code = cancel_base_info['fuse_policy_code'].tolist()
-    cancel_info = get_cancel_info(cancel_policy_code)
+    print(cancel_policy_code)
+    policy_info = get_cancel_info(cancel_policy_code)
 
-
-    closing_info = get_closing_info()
-    paid_info = get_paid_info()
-
-    policy_info=pd.merge(closing_info,paid_info,on=["FUSE ID",'PARTNER NAME','TAG NAME'],how='outer')
-    policy_info=pd.merge(policy_info,cancel_info,on=["FUSE ID",'PARTNER NAME','TAG NAME'],how='outer')
-
-    policy_info.insert(0,'No',range(1,len(policy_info)+1))
-    ## 填充0
-    policy_info = policy_info.fillna(0)
     print(policy_info)
     return policy_info
 
 
-def write_to_excel(policy_info):
+def write_to_excel(policy_info,excel_name):
     ## 导出到excel
     print("writing......")
     t = datetime.now().date() - timedelta(days=1)
-    writer = pd.ExcelWriter("product_report_No4" + (u'_%d%02d%02d.xlsx' % (t.year, t.month, t.day)))
+    writer = pd.ExcelWriter(excel_name + (u'_%d%02d%02d.xlsx' % (t.year, t.month, t.day)))
 
     wb = writer.book
 
@@ -732,7 +834,7 @@ def write_to_excel(policy_info):
     total_line_fmt = wb.add_format({ 'bg_color': '#A9A9A9'})
     merge_fmt = wb.add_format({ 'bold': True, 'font_size': 12,'bg_color': '#A9A9A9', 'align': 'center'})
 
-    sheet_name = u'product_report_No4'
+    sheet_name = excel_name
     policy_info.to_excel(writer, sheet_name=sheet_name, encoding='utf8', header=True, index=False, startcol=0, startrow=0)
     worksheet1 = writer.sheets[sheet_name]
     worksheet1.set_column('A:K', 20)
@@ -748,7 +850,9 @@ def write_to_excel(policy_info):
 
 
 
-write_to_excel(data_generate())
+write_to_excel(get_closing_info(),'No4_closing_details')
+write_to_excel(get_paid_info(),'No4_paid_details')
+write_to_excel(cancel_data_generate(),'No4__cancel_details')
 ## 关闭连接
 mdbF.shoutdown()
 db.shoutdown()

@@ -1,7 +1,7 @@
 # @Time    : 2020/11/14 5:22 下午
 # @Author  : luoh
 # @Email   : luohenghlx@163.com
-# @File    : product_report_No1.py
+# @File    : product_report_No5.py
 # @Software: PyCharm
 # @Description: 保险公司产品保单统计
 
@@ -226,15 +226,6 @@ offline_cancel_data = mgdb.policy.find({"$or":[{"cancelTime":{ "$exists": "true"
 
 other_reject_info_data = mgdb.operateLog.find({"operateType":14,"details":{"$regex":"Action: no process"}},{"_id":0,"serchId":1,"operateTime":1});
 
-
-def get_insurance_mapping():
-    print("get_insurance_mapping......")
-    mapping = pd.read_excel('insuance_mappping.xlsx')
-    mapping.drop(mapping.columns[-1], axis=1, inplace=True)
-    return mapping
-
-
-
 def get_policy_info():
     print("query data......")
     data = db.querysql(policy_sql)
@@ -286,71 +277,15 @@ def data_generate():
     policy_info= pd.merge(temp1,cancel_time_info,on="fuse_policy_code",how='left')
 
 
-
-
-    # time_filter = lambda x: x['order_time_month']=='2020-10'
-
     time_filter = lambda x: x['order_time_month']!=x['reject_time'] and x['order_time_month']!=x['cancel_time'] and x['order_time_month']!=x['force_cancel_time']
 
     policy_info=policy_info[policy_info.apply(time_filter, axis=1)]
 
+    time_filter = lambda x: x['order_time_month']=='2020-08'
 
-    ## 分组聚合
-    ## 保险公司名字转小写
-    policy_info['insurance_company_name'] = policy_info.insurance_company_name.str.lower()
+    policy_info = policy_info[policy_info.apply(time_filter, axis=1)]
 
-    ## mapping
-    insurance_mapping = get_insurance_mapping()
-    policy_info = pd.merge(policy_info, insurance_mapping, on="insurance_company_name", how='left')
-    policy_info['insurance_company_name'] = policy_info['insurance_company_name_mapped']
-
-
-    insurance_group = policy_info.groupby(["insurance_company_name"])
-
-
-    policy_count=[]
-    sub_total = {"insurance_company_name":" GRAND TOTAL", "policy_source":'total',"policy_type" :'total'}
-    sub_total["total_count"] = policy_info.__len__()
-    sub_total["total_gwp"] = policy_info['gwp'].sum()
-    for insurance_name, each_sheet in insurance_group:
-        this_insurance = pd.DataFrame(each_sheet)
-        policy_group = this_insurance.groupby(["policy_source", "policy_type"])
-        total_info = {"insurance_company_name": insurance_name, "policy_source": 'policy_source',
-                       "policy_type": "policy_type"}
-        total_info_merge = {"insurance_company_name": insurance_name, "policy_source": 'policy_source_merge',
-                      "policy_type": "policy_type"}
-        policy_count.append(total_info_merge)
-        policy_count.append(total_info)
-        for name, policy_sheet in policy_group:
-            this_type = pd.DataFrame(policy_sheet)
-            each_month = this_type.groupby(["order_time_month"])
-            this_policy = {"insurance_company_name":insurance_name, "policy_source":name[0],"policy_type" :name[1]}
-            for month_name, each_month_sheet in each_month:
-                this_month = pd.DataFrame(each_month_sheet)
-                this_policy[month_name+"_count"]=this_month.__len__()
-                this_policy[month_name+"_gwp"]=this_month['gwp'].sum()
-                total_info[month_name + "_count"] = (total_info[month_name + "_count"] if (month_name + "_count") in total_info else 0) +this_month.__len__()
-                total_info[month_name + "_gwp"] = (total_info[month_name + "_gwp"] if (month_name + "_gwp") in total_info else 0) +this_month['gwp'].sum()
-
-                total_info_merge[month_name + "_count"] = (total_info_merge[month_name + "_count"] if (month_name + "_count") in total_info_merge else 0) +this_month.__len__()
-                total_info_merge[month_name + "_gwp"] = (total_info_merge[month_name + "_gwp"] if (month_name + "_gwp") in total_info_merge else 0) +this_month['gwp'].sum()
-
-                sub_total[month_name + "_count"] = (sub_total[month_name + "_count"] if (month_name + "_count") in sub_total else 0) +this_month.__len__()
-                sub_total[month_name + "_gwp"] = (sub_total[month_name + "_gwp"] if (month_name + "_gwp") in sub_total else 0) +this_month['gwp'].sum()
-
-            this_policy["total_count"] = this_type.__len__()
-            this_policy["total_gwp"] = this_type['gwp'].sum()
-            total_info["total_count"] = this_insurance.__len__()
-            total_info["total_gwp"] = this_insurance['gwp'].sum()
-            total_info_merge["total_count"] = this_insurance.__len__()
-            total_info_merge["total_gwp"] = this_insurance['gwp'].sum()
-            policy_count.append(this_policy)
-
-    policy_count.append(sub_total)
-
-    policy_info = pd.DataFrame(policy_count)
-
-    order = ['insurance_company_name', 'policy_source', 'policy_type', '2020-08_count', '2020-08_gwp','2020-09_count', '2020-09_gwp','2020-10_count', '2020-10_gwp', 'total_count', 'total_gwp']
+    order = ['fuse_policy_code','order_time','policy_source', 'policy_type','gwp']
     policy_info = policy_info[order]
 
     policy_info = policy_info.fillna(0)
@@ -362,42 +297,24 @@ def write_to_excel(policy_info):
     ## 导出到excel
     print("writing......")
     t = datetime.now().date() - timedelta(days=1)
-    writer = pd.ExcelWriter("product_report_No1" + (u'_%d%02d%02d.xlsx' % (t.year, t.month, t.day)))
+    writer = pd.ExcelWriter("product_report_No2_details" + (u'_%d%02d%02d.xlsx' % (t.year, t.month, t.day)))
 
     wb = writer.book
 
     # 3.设置格式
     header_fmt = wb.add_format(
-        {'bold': True, 'font_size': 13,'font_color': 'white', 'font_name': u'微软雅黑','valign': 'vcenter', 'bg_color': '#7F7F7F', 'align': 'center'})
-    total_line_fmt = wb.add_format({ 'bold': True, 'font_size': 12,'bg_color': '#BFBEBF'})
-    merge_fmt = wb.add_format({ 'bold': True, 'font_size': 12,'bg_color': '#BFBEBF', 'align': 'center'})
-    border_format = wb.add_format({'border': 1})
-    sheet_name = u'product_report_No1'
+        {'bold': True, 'font_size': 13,'font_color': 'white', 'font_name': u'微软雅黑','valign': 'vcenter', 'bg_color': '#808080', 'align': 'center'})
+    total_line_fmt = wb.add_format({ 'bg_color': '#A9A9A9'})
+    merge_fmt = wb.add_format({ 'bold': True, 'font_size': 12,'bg_color': '#A9A9A9', 'align': 'center'})
+
+    sheet_name = u'product_report_No2_details'
     policy_info.to_excel(writer, sheet_name=sheet_name, encoding='utf8', header=True, index=False, startcol=0, startrow=0)
     worksheet1 = writer.sheets[sheet_name]
     worksheet1.set_column('A:K', 20)
-    l_end = len(policy_info.index) + 3
     for col_num, value in enumerate(policy_info.columns.values):
         worksheet1.write(0, col_num, value, header_fmt)
 
-    for index, row in policy_info.iterrows():
-        if(row['policy_source']=="policy_source_merge"):
-            worksheet1.merge_range(first_row=index + 1, last_row=index + 1, first_col=1, last_col=2,
-                                   data=row['insurance_company_name'], cell_format=merge_fmt)
-        elif(row['policy_source']=="policy_source"):
-            for col_num, value in enumerate(row):
-                if col_num > 2:
-                    worksheet1.merge_range(first_row=index, last_row=index + 1, first_col=col_num, last_col=col_num,
-                                           data=value if not pd.isna(value) else '', cell_format=total_line_fmt)
-                else:
-                    worksheet1.write(index + 1, col_num, value if not pd.isna(value) else '', total_line_fmt)
 
-        elif(row['policy_source']=="total"):
-            for col_num, value in enumerate(row):
-                worksheet1.write(index + 1, col_num, value if not pd.isna(value) else '', header_fmt)
-
-    # 加边框
-    worksheet1.conditional_format('A1:K%d' % l_end, {'type': 'no_blanks', 'format': border_format})
     writer.save()
 
     print("write done !!!")
@@ -405,7 +322,6 @@ def write_to_excel(policy_info):
 
 
 
-## get_insurance_mapping()
 write_to_excel(data_generate())
 ## 关闭连接
 mdbF.shoutdown()
