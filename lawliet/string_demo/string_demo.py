@@ -33,3 +33,10 @@ print(new_data)
 list = ['a','b','c']
 new_tuple = ( d.upper() for d in data )
 print(tuple(new_tuple))
+
+sql_param={
+'force_cancel_time': '2020-12-12',
+ 'main_policy_code' : 'asdfddd'
+}
+sql_lambda = lambda x: f"update policy set force_cancel_time='{x['force_cancel_time']}' where main_policy_code='{x['main_policy_code']}';"
+print(sql_lambda(sql_param))
